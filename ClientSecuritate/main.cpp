@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 
     cout << "connected to server" << endl;
 
-    char buffer[100] = "user oana";
+    char buffer[1024] = "user oana";
 
     size_t size = strlen(buffer);
 
@@ -121,7 +121,25 @@ int main(int argc, char **argv) {
     }
 
     strcpy(buffer, "");
+//user
+    iResult = receiveValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
 
+    cout << buffer << endl;
+//pass
+    iResult = receiveValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    cout << buffer << endl;
+//list
     iResult = receiveValue(ConnectSocket, size, buffer);
     if (iResult <= 0) {
         closesocket(ConnectSocket);

@@ -6,6 +6,7 @@
 #include "CommandCenter.h"
 
 #define DEFAULT_PORT "27015"
+#define ARGUMENT_ERROR "argument not accepted. cannot use forbidden characters: \% \;"
 
 using namespace std;
 
@@ -83,6 +84,9 @@ void workerThread(SOCKET ClientSocket) {
     ///where to set current user
     char current_user[10];
 
+    ///where to set current directory
+    char current_directory[100] = ".";
+
     ///WHERE TO READ CURRENT COMMAND
     char current_command[100];
     char current_command_word[100];
@@ -93,6 +97,7 @@ void workerThread(SOCKET ClientSocket) {
             The message was too large to fit into the specified buffer and was truncated.
      */
 
+    int i = 0;
     size_t bufferSize;
 
     int iResult = receiveValue(ClientSocket, bufferSize, current_command);
@@ -105,9 +110,62 @@ void workerThread(SOCKET ClientSocket) {
 
     while (strcmp(current_command_word, "quit") != 0) {
 
-        string useCommand = current_command;
-        char return_val[100];
-        strcpy(return_val, goToCommand(useCommand));
+        char return_val[1024];
+        string arguments;
+
+        if (strcmp(current_command, current_command_word) != 0)
+            arguments = getCommandArguments(current_command);
+
+        if (strcmp(current_command_word, USER_COMMAND) == 0) {
+            if (arguments.empty()) {
+                strcpy(return_val, ARGUMENT_ERROR);
+            } else if (strcmp(current_user, "") == 0) {
+                strcpy(return_val, userCommand(arguments));
+                if (strcmp(return_val, "false") == 0) {
+                    cout << "user does not exist!" << endl;
+                    strcpy(return_val, "user does not exist!");
+                } else {
+                    strcpy(current_user, return_val);
+                }
+            } else {
+                cout << "user already logged in!";
+                strcpy(return_val, "user already logged in!");
+            }
+        }
+
+        if (strcmp(current_command_word, PASS_COMMAND) == 0) {
+            if (arguments.empty()) {
+                strcpy(return_val, ARGUMENT_ERROR);
+            } else if (strcmp(current_user, "") == 0) {
+                strcpy(return_val, "user hasn't been saved!");
+            } else {
+                strcpy(return_val, passCommand(current_user, arguments));
+                if (strcmp(return_val, "false") == 0) {
+                    cout << "user and password do not match!" << endl;
+                    strcpy(return_val, "user and password do not match!");
+                } else {
+                    authenticated = true;
+                }
+            }
+        }
+
+
+        if (strcmp(current_command_word, LIST_COMMAND) == 0) {
+            if (authenticated) {
+//                strncpy(return_val, listCommand(return_val), sizeof(return_val));
+                if (strcmp(current_command, current_command_word) != 0 && arguments.empty()) {
+                    strcpy(return_val, ARGUMENT_ERROR);
+                } else {
+                    strcpy(return_val, "");
+                    if (arguments.empty())
+                        arguments = current_directory;
+                    listCommand(return_val, 1024, arguments);
+                }
+            } else {
+                strcpy(return_val, "user must be logged in");
+            }
+        }
+
 
         size_t size = strlen(return_val);
 
@@ -116,13 +174,17 @@ void workerThread(SOCKET ClientSocket) {
         if (iResult <= 0) {
             return;
         }
-        if (strcmp(current_command_word, "user") == 0) {
-            strncpy(current_user, return_val, strlen(return_val));
-        }
 
-        strcpy(current_command_word, "quit");
+        if (i == 2)
+            strcpy(current_command, "quit");
+        else if (i == 0)
+            strcpy(current_command, "pass pass");
+        else
+            strcpy(current_command, "list");
 
+        strcpy(current_command_word, getCommandWord(current_command).c_str());
 
+        i++;
     }
 
     cout << "end of client" << endl;

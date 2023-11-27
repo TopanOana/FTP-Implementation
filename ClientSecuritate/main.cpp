@@ -8,6 +8,49 @@
 
 using namespace std;
 
+int sendValue(SOCKET ConnectSocket, size_t length, char *value) {
+    size_t copyLength = htonl(length);
+
+    int result = send(ConnectSocket, (char *) &copyLength, sizeof(size_t), 0);
+
+    if (result <= 0) {
+        cout << "Error occurred on sending size of buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    result = send(ConnectSocket, value, sizeof(char) * length, 0);
+
+    if (result <= 0) {
+        cout << "Error occurred on sending buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    return result;
+
+}
+
+int receiveValue(SOCKET ConnectSocket, size_t &length, char *value) {
+    int result = recv(ConnectSocket, (char *) &length, sizeof(size_t), 0);
+
+    if (result <= 0) {
+        cout << "Error occured on reading size of buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    length = ntohl(length);
+
+    result = recv(ConnectSocket, value, sizeof(char) * length, 0);
+
+    if (result <= 0) {
+        cout << "Error occured on reading buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    value[length] = 0;
+    return result;
+}
+
+
 int main(int argc, char **argv) {
     ///START UP
     WSADATA wsaData;
@@ -68,44 +111,23 @@ int main(int argc, char **argv) {
 
     char buffer[100] = "user oana";
 
-    size_t size = htonl(strlen(buffer));
+    size_t size = strlen(buffer);
 
-    iResult = send(ConnectSocket, (char*)size, sizeof(size_t), 0);
+    iResult = sendValue(ConnectSocket, size, buffer);
     if (iResult <= 0) {
-        cout << "error on send: " << WSAGetLastError() << endl;
         closesocket(ConnectSocket);
         WSACleanup();
         return 1;
     }
 
-
-    iResult = send(ConnectSocket, buffer, strlen(buffer) * sizeof(char), 0);
-    if (iResult <= 0) {
-        cout << "error on send: " << WSAGetLastError() << endl;
-        closesocket(ConnectSocket);
-        WSACleanup();
-        return 1;
-    }
     strcpy(buffer, "");
 
-    iResult = recv(ConnectSocket, (char*)size, sizeof(size_t), 0);
+    iResult = receiveValue(ConnectSocket, size, buffer);
     if (iResult <= 0) {
-        cout << "error on recv: " << WSAGetLastError() << endl;
         closesocket(ConnectSocket);
         WSACleanup();
         return 1;
     }
-
-    size = ntohl(size);
-
-    iResult = recv(ConnectSocket, buffer, size * sizeof(char), 0);
-    if (iResult <= 0) {
-        cout << "error on recv: " << WSAGetLastError() << endl;
-        closesocket(ConnectSocket);
-        WSACleanup();
-        return 1;
-    }
-    buffer[strlen(buffer)] = 0;
 
     cout << buffer << endl;
 

@@ -32,13 +32,61 @@ BOOL WINAPI consoleHandler(DWORD signal) {
     return true;
 }
 
+int sendValue(SOCKET ClientSocket, size_t length, char *value) {
+    size_t copyLength = htonl(length);
+
+    int result = send(ClientSocket, (char *) &copyLength, sizeof(size_t), 0);
+
+    if (result <= 0) {
+        cout << "Error occurred on sending size of buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    result = send(ClientSocket, value, sizeof(char) * length, 0);
+
+    if (result <= 0) {
+        cout << "Error occurred on sending buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    return result;
+
+}
+
+int receiveValue(SOCKET ClientSocket, size_t &length, char *value) {
+    int result = recv(ClientSocket, (char *) &length, sizeof(size_t), 0);
+
+    if (result <= 0) {
+        cout << "Error occured on reading size of buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    length = ntohl(length);
+
+    result = recv(ClientSocket, value, sizeof(char) * length, 0);
+
+    if (result <= 0) {
+        cout << "Error occured on reading buffer: " << WSAGetLastError() << endl;
+        return result;
+    }
+
+    value[length] = 0;
+    return result;
+}
+
+
 void workerThread(SOCKET ClientSocket) {
     cout << "connected to client!" << endl;
     ///SET AUTHENTICATED TO FALSE
     bool authenticated = false;
 
+    ///where to set current user
+    char current_user[10];
+
     ///WHERE TO READ CURRENT COMMAND
     char current_command[100];
+    char current_command_word[100];
+    char command_arguments[100];
     /*
      * FOR RECV
      *  WSAEMSGSIZE -> error
@@ -47,69 +95,34 @@ void workerThread(SOCKET ClientSocket) {
 
     size_t bufferSize;
 
-    int iResult = recv(ClientSocket, (char *) &bufferSize, sizeof(size_t), 0);
-    if (iResult == 0) {
-        cout << "CONNECTION CLOSED!" << endl;
-        return;
-    } else if (iResult < 0) {
-        cout << "error has occurred: " << WSAGetLastError() << endl;
+    int iResult = receiveValue(ClientSocket, bufferSize, current_command);
+
+    if (iResult <= 0) {
         return;
     }
 
-    bufferSize = ntohl(bufferSize);
+    strcpy(current_command_word, getCommandWord(current_command).c_str());
 
+    while (strcmp(current_command_word, "quit") != 0) {
 
-    iResult = recv(ClientSocket, current_command, bufferSize, 0);
-    if (iResult == 0) {
-        cout << "connection closed!" << endl;
-        return;
-    } else if (iResult < 0) {
-        if (iResult == WSAEMSGSIZE) {
-            cout << "a possible buffer overflow was attempted, the size of the command was truncated" << endl;
-            strcpy(current_command, "");
+        string useCommand = current_command;
+        char return_val[100];
+        strcpy(return_val, goToCommand(useCommand));
+
+        size_t size = strlen(return_val);
+
+        iResult = sendValue(ClientSocket, size, return_val);
+
+        if (iResult <= 0) {
+            return;
         }
-    }
-    while (strcmp(current_command, "QUIT") != 0) {
-        if (strcmp(current_command, "") == 0) {
-            strcpy(current_command,
-                   "please retry with a valid command that doesn\'t surpass the 100 character threshold");
-            cout << "cmd surpassed limit and was truncated, not processed" << endl;
-            size_t size = strlen(current_command);
-            iResult = send(ClientSocket, (char *) size, sizeof(size_t), 0);
-            if (iResult <= 0) {
-                cout << "error has occurred: " << WSAGetLastError() << endl;
-                return;
-            }
-            iResult = send(ClientSocket, current_command, size * sizeof(char), 0);
-            if (iResult == SOCKET_ERROR) {
-                cout << "send failed: " << WSAGetLastError() << endl;
-//                closesocket()
-            }
-        } else {
-            string useCommand = current_command;
-            char return_val[100];
-            strcpy(return_val, goToCommand(useCommand));
-
-            size_t size = htonl(strlen(return_val));
-
-            iResult = send(ClientSocket, (char*)size, sizeof(size_t), 0);
-
-            if (iResult <= 0) {
-                cout << "error on send: " << WSAGetLastError() << endl;
-                closesocket(ClientSocket);
-                return;
-            }
-
-            iResult = send(ClientSocket, return_val, size * sizeof(char) + 1, 0);
-            if (iResult <= 0) {
-                cout << "error on send: " << WSAGetLastError() << endl;
-                closesocket(ClientSocket);
-                return;
-            }
-
-            strcpy(current_command, "QUIT");
-
+        if (strcmp(current_command_word, "user") == 0) {
+            strncpy(current_user, return_val, strlen(return_val));
         }
+
+        strcpy(current_command_word, "quit");
+
+
     }
 
     cout << "end of client" << endl;

@@ -52,6 +52,13 @@ string right_trim(string value){
     return (end == std::string::npos) ? "" : value.substr(0, end + 1);
 }
 
+string getCommandWord(string command){
+    command = left_trim(command);
+    string cmd = command.substr(0, command.find(' '));
+    transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
+    return cmd;
+}
+
 char* goToCommand(string command){
     command = left_trim(command);
     string cmd = command.substr(0, command.find(' '));
@@ -60,7 +67,7 @@ char* goToCommand(string command){
     if (cmd == USER_COMMAND){
         bool value = checkIfUserExists(arguments);
         if(value)
-            return "true";
+            return const_cast<char *>(arguments.c_str());
         else
             return "false";
     }

@@ -1,4 +1,4 @@
-# Install script for directory: D:/UniversityWork/ClientSecuritate
+# Install script for directory: D:/UniversityWork/SecuritateFTP/ClientSecuritate
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "D:/UniversityWork/ClientSecuritate/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "D:/UniversityWork/SecuritateFTP/ClientSecuritate/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

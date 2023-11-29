@@ -18,11 +18,9 @@
 #define PASS_COMMAND "pass"
 #define QUIT_COMMAND "quit"
 #define CWD_COMMAND "cwd"
-#define PORT_COMMAND "port"
 #define LIST_COMMAND "list"
 #define RETR_COMMAND "retr"
 #define STOR_COMMAND "stor"
-#define MODE_COMMAND "mode"
 #define PASV_COMMAND "pasv"
 
 #define WHITESPACE " \n\r\t\f\v"

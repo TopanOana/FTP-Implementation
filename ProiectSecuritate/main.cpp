@@ -12,7 +12,6 @@ using namespace std;
 
 vector<thread> allThreads;
 
-
 BOOL WINAPI consoleHandler(DWORD signal) {
     cout << "before handling the kills" << endl;
     if (signal == CTRL_C_EVENT) {

@@ -12,13 +12,6 @@ using namespace std;
 
 vector<thread> allThreads;
 
-void handlerForKill(int sig) {
-    cout << "handling the kills" << endl;
-    for (auto &item: allThreads) {
-        item.join();
-    }
-    exit(0);
-}
 
 BOOL WINAPI consoleHandler(DWORD signal) {
     cout << "before handling the kills" << endl;
@@ -152,7 +145,6 @@ void workerThread(SOCKET ClientSocket) {
 
         if (strcmp(current_command_word, LIST_COMMAND) == 0) {
             if (authenticated) {
-//                strncpy(return_val, listCommand(return_val), sizeof(return_val));
                 if (strcmp(current_command, current_command_word) != 0 && arguments.empty()) {
                     strcpy(return_val, ARGUMENT_ERROR);
                 } else {
@@ -162,6 +154,26 @@ void workerThread(SOCKET ClientSocket) {
                     listCommand(return_val, 1024, arguments);
                 }
             } else {
+                strcpy(return_val, "user must be logged in");
+            }
+        }
+
+        if (strcmp(current_command_word, CWD_COMMAND) == 0){
+            if (authenticated){
+                if (arguments.empty()){
+                    if (strcmp(current_command, current_command_word) == 0){
+                        strcpy(return_val, "an path must be provided");
+                    }
+                    else{
+                        strcpy(return_val, ARGUMENT_ERROR);
+                    }
+                }
+                else{
+                    if (strcmp(cwdCommand(arguments), "true")){
+//                        strcpy(current_directory, )
+                    }
+                }
+            }else{
                 strcpy(return_val, "user must be logged in");
             }
         }
@@ -180,7 +192,7 @@ void workerThread(SOCKET ClientSocket) {
         else if (i == 0)
             strcpy(current_command, "pass pass");
         else
-            strcpy(current_command, "list");
+            strcpy(current_command, "list ..");
 
         strcpy(current_command_word, getCommandWord(current_command).c_str());
 

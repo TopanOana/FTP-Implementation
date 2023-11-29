@@ -9,6 +9,8 @@
 #include <string>
 #include <algorithm>
 #include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "Authentication.h"
 
 
@@ -85,7 +87,12 @@ char *passCommand(char *user, string arguments) {
 }
 
 char *cwdCommand(string arguments) {
-
+    struct _stat structure;
+    int result = _stat(arguments.c_str(), &structure);
+    if (result < 0)
+        return "false";
+    else
+        return "true";
 }
 
 void listCommand(char *result, int size, string arguments) {
@@ -105,48 +112,6 @@ void listCommand(char *result, int size, string arguments) {
     }
 }
 
-
-char *goToCommand(string command) {
-    command = left_trim(command);
-    string cmd = command.substr(0, command.find(' '));
-    transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
-    string arguments = right_trim(left_trim(command.substr(command.find(' '))));
-    if (cmd == USER_COMMAND) {
-        bool value = checkIfUserExists(arguments);
-        if (value)
-            return const_cast<char *>(arguments.c_str());
-        else
-            return "false";
-    }
-    if (cmd == PASS_COMMAND) {
-
-    }
-    if (cmd == QUIT_COMMAND) {
-
-    }
-    if (cmd == CWD_COMMAND) {
-
-    }
-    if (cmd == PORT_COMMAND) {
-
-    }
-    if (cmd == LIST_COMMAND) {
-
-    }
-    if (cmd == RETR_COMMAND) {
-
-    }
-    if (cmd == STOR_COMMAND) {
-
-    }
-    if (cmd == MODE_COMMAND) {
-
-    }
-    if (cmd == PASV_COMMAND) {
-
-    }
-    return "";
-}
 
 
 #endif //PROIECTSECURITATE_COMMANDCENTER_H

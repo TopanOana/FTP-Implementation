@@ -14,6 +14,9 @@
 #include <sys/stat.h>
 #include "Authentication.h"
 #include <windows.h>
+#include <shlwapi.h>
+#include <fcntl.h>
+#include "SocketFunctions.h"
 
 
 #define USER_COMMAND "user"
@@ -86,16 +89,13 @@ char *passCommand(char *user, string arguments) {
         return "false";
 }
 
-char *cwdCommand(string arguments) {
+void cwdCommand(string arguments, char *path) {
     struct _stat structure;
     int result = _stat(arguments.c_str(), &structure);
     if (result < 0)
-        return "false";
+        strcpy(path, "false");
     else {
-        char *path;
-//        PathCanonicalizeA(path, arguments.c_str());
-        strcpy(path, arguments.c_str());
-        return path;
+        _fullpath(path, arguments.c_str(), _MAX_PATH);
     }
 }
 
@@ -113,6 +113,43 @@ void listCommand(char *result, int size, string arguments) {
         closedir(dir);
     } else {
         strcpy(result, "not a directory");
+    }
+}
+
+
+void retrCommand(SOCKET DataSocket, string arguments, char* currentDirectory) {
+    struct _stat structure;
+    char filepath[100] = "";
+    strcat(filepath, currentDirectory);
+    strcat(filepath, "\\");
+    strcat(filepath, arguments.c_str());
+
+    int result = _stat(arguments.c_str(), &structure);
+    char buffer[101] = "";
+    if (result < 0) {
+        strcpy(buffer, "Error accessing file");
+        int res = sendValue(DataSocket, strlen(buffer), buffer);
+        if (res <= 0) {
+            pthread_exit(nullptr);
+        }
+    } else {
+        int k, count = structure.st_size, total = 0;
+        size_t copySize = htonl(count);
+        int res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
+        if (res <= 0) {
+            pthread_exit(nullptr);
+        }
+
+
+        int fileDescriptor = open(arguments.c_str(), O_RDONLY);
+        while (total < count && (k = read(fileDescriptor, buffer, 100)) > 0) {
+            total += k;
+            buffer[100] = 0;
+            int res = sendValue(DataSocket, strlen(buffer), buffer);
+            if (res <= 0) {
+                pthread_exit(nullptr);
+            }
+        }
     }
 }
 

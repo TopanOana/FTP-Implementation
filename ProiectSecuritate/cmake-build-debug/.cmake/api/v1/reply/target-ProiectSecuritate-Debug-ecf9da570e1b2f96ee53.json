@@ -80,6 +80,11 @@
 				"role" : "libraries"
 			},
 			{
+				"backtrace" : 1,
+				"fragment" : "-lShlwapi",
+				"role" : "libraries"
+			},
+			{
 				"fragment" : "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32",
 				"role" : "libraries"
 			}
@@ -107,7 +112,8 @@
 			"sourceIndexes" : 
 			[
 				1,
-				2
+				2,
+				3
 			]
 		}
 	],
@@ -127,6 +133,11 @@
 		{
 			"backtrace" : 1,
 			"path" : "CommandCenter.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "SocketFunctions.h",
 			"sourceGroupIndex" : 1
 		}
 	],

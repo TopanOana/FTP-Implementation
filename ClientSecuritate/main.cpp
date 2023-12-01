@@ -10,6 +10,7 @@ using namespace std;
 
 char DATA_IP[100] = "127.0.0.1";
 char DATA_PORT[100] = "1285";
+int currentCommand = 1;
 
 int sendValue(SOCKET ConnectSocket, size_t length, char *value) {
     size_t copyLength = htonl(length);
@@ -53,7 +54,7 @@ int receiveValue(SOCKET ConnectSocket, size_t &length, char *value) {
     return result;
 }
 
-SOCKET CreateDataSocket(){
+SOCKET CreateDataSocketActiveMode() {
     ///CREATE SOCKET
     struct addrinfo *result = NULL, *ptr = NULL, hints;
 
@@ -63,7 +64,10 @@ SOCKET CreateDataSocket(){
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
 
-    int iResult = getaddrinfo(DATA_IP, DATA_PORT, &hints, &result);
+    char port[10];
+    strcpy(port, to_string(atoi(DATA_PORT) + currentCommand).c_str());
+
+    int iResult = getaddrinfo(DATA_IP, port, &hints, &result);
     if (iResult != 0) {
         std::cout << "getaddrinfo failed: " << iResult << endl;
         WSACleanup();
@@ -107,16 +111,17 @@ SOCKET CreateDataSocket(){
 
     SOCKET DataSocket = INVALID_SOCKET;
     DataSocket = accept(ListenSocket, NULL, NULL);
-    if (DataSocket == INVALID_SOCKET){
+    if (DataSocket == INVALID_SOCKET) {
         cout << "Accept failed with error: " << WSAGetLastError() << endl;
         closesocket(ListenSocket);
         WSACleanup();
         exit(1);
     }
 
+    currentCommand++;
+
     return DataSocket;
 }
-
 
 
 int main(int argc, char **argv) {
@@ -255,7 +260,7 @@ int main(int argc, char **argv) {
         WSACleanup();
         return 1;
     }
-    SOCKET DataSocket = CreateDataSocket();
+    SOCKET DataSocket = CreateDataSocketActiveMode();
 
     iResult = receiveValue(DataSocket, size, buffer);
     if (iResult <= 0) {
@@ -265,7 +270,87 @@ int main(int argc, char **argv) {
     }
 
     closesocket(DataSocket);
-    cout<<buffer<<endl;
+    cout << buffer << endl;
+
+
+    strcpy(buffer, "");
+    strcpy(buffer, "cwd ..");
+    size = strlen(buffer);
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+    DataSocket = CreateDataSocketActiveMode();
+
+    iResult = receiveValue(DataSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        closesocket(DataSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    closesocket(DataSocket);
+    cout << buffer << endl;
+
+
+    strcpy(buffer, "");
+    strcpy(buffer, "list");
+    size = strlen(buffer);
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+    DataSocket = CreateDataSocketActiveMode();
+
+    iResult = receiveValue(DataSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    closesocket(DataSocket);
+    cout << buffer << endl;
+
+    //retr
+    strcpy(buffer, "");
+    strcpy(buffer, "retr CMakeLists.txt");
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    DataSocket = CreateDataSocketActiveMode();
+
+    size_t filesize;
+    iResult = recv(DataSocket, (char *) filesize, sizeof(size_t), 0);
+
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        cout << "error receivijng file size" << endl;
+        WSACleanup();
+        return 1;
+    }
+
+    filesize = ntohl(filesize);
+
+    char filebuf[100];
+    int count = 0, k = 0;
+    size_t aux = 0;
+    while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
+        count += ntohl(aux);
+        cout << filebuf;
+    }
 
 
 

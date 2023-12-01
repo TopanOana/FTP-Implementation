@@ -13,6 +13,7 @@ using namespace std;
 
 char DATA_PORT[100] = "20";
 char DATA_IP[100] = "127.0.0.1";
+int currentCommand = 1;
 
 vector<thread> allThreads;
 
@@ -29,49 +30,8 @@ BOOL WINAPI consoleHandler(DWORD signal) {
     return true;
 }
 
-int sendValue(SOCKET ClientSocket, size_t length, char *value) {
-    size_t copyLength = htonl(length);
 
-    int result = send(ClientSocket, (char *) &copyLength, sizeof(size_t), 0);
-
-    if (result <= 0) {
-        cout << "Error occurred on sending size of buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    result = send(ClientSocket, value, sizeof(char) * length, 0);
-
-    if (result <= 0) {
-        cout << "Error occurred on sending buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    return result;
-
-}
-
-int receiveValue(SOCKET ClientSocket, size_t &length, char *value) {
-    int result = recv(ClientSocket, (char *) &length, sizeof(size_t), 0);
-
-    if (result <= 0) {
-        cout << "Error occured on reading size of buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    length = ntohl(length);
-
-    result = recv(ClientSocket, value, sizeof(char) * length, 0);
-
-    if (result <= 0) {
-        cout << "Error occured on reading buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    value[length] = 0;
-    return result;
-}
-
-SOCKET CreateDataSocket() {
+SOCKET CreateDataSocketActiveMode() {
     struct addrinfo *result = NULL,
             *ptr = NULL,
             hints;
@@ -81,8 +41,11 @@ SOCKET CreateDataSocket() {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
+    char port[10] ;
+    strcpy(port, to_string(atoi(DATA_PORT) + currentCommand).c_str());
 
-    int iResult = getaddrinfo(DATA_IP, DATA_PORT, &hints, &result);
+
+    int iResult = getaddrinfo(DATA_IP, port, &hints, &result);
     if (iResult != 0) {
         cout << "getaddrinfo failed: " << iResult << endl;
         WSACleanup();
@@ -121,6 +84,7 @@ SOCKET CreateDataSocket() {
         pthread_exit(nullptr);
     }
 
+    currentCommand++;
 
     return DataSocket;
 }
@@ -294,7 +258,7 @@ void workerThread(SOCKET ClientSocket) {
 
     while (strcmp(current_command_word, "quit") != 0) {
 
-        SOCKET DataSocket = CreateDataSocket();
+        SOCKET DataSocket = CreateDataSocketActiveMode();
 
         char return_val[1024];
         string arguments;
@@ -326,14 +290,28 @@ void workerThread(SOCKET ClientSocket) {
                 }
             } else {
                 char auxiliary[500];
-                strcpy(auxiliary, cwdCommand(arguments));
+                cwdCommand(arguments, auxiliary);
                 if (strcmp(auxiliary, "false") == 0) {
                     strcpy(return_val, "File path doesn't exist or is inaccessible.");
                 } else {
                     strcpy(current_directory, auxiliary);
+                    strcpy(return_val, "Successfully changed directory");
                 }
             }
 
+        }
+
+        if (strcmp(current_command_word, RETR_COMMAND) == 0){
+            if (arguments.empty()) {
+                if (strcmp(current_command, current_command_word) == 0) {
+                    strcpy(return_val, "an path must be provided");
+                } else {
+                    strcpy(return_val, ARGUMENT_ERROR);
+                }
+            }
+            else{
+                retrCommand(DataSocket, arguments, current_directory);
+            }
         }
 
 
@@ -355,7 +333,7 @@ void workerThread(SOCKET ClientSocket) {
 
         strcpy(current_command_word, getCommandWord(current_command).c_str());
 
-        i++;
+
     }
 
     cout << "end of client" << endl;

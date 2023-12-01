@@ -8,7 +8,8 @@
 
 using namespace std;
 
-char DATA_PORT[100] = "127.0.0.1:1285";
+char DATA_IP[100] = "127.0.0.1";
+char DATA_PORT[100] = "1285";
 
 int sendValue(SOCKET ConnectSocket, size_t length, char *value) {
     size_t copyLength = htonl(length);
@@ -51,6 +52,71 @@ int receiveValue(SOCKET ConnectSocket, size_t &length, char *value) {
     value[length] = 0;
     return result;
 }
+
+SOCKET CreateDataSocket(){
+    ///CREATE SOCKET
+    struct addrinfo *result = NULL, *ptr = NULL, hints;
+
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+
+    int iResult = getaddrinfo(DATA_IP, DATA_PORT, &hints, &result);
+    if (iResult != 0) {
+        std::cout << "getaddrinfo failed: " << iResult << endl;
+        WSACleanup();
+        exit(1);
+    }
+
+
+    SOCKET ListenSocket = INVALID_SOCKET;
+    ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+
+    if (ListenSocket == INVALID_SOCKET) {
+        cout << "Error at socket() : " << WSAGetLastError() << endl;
+        freeaddrinfo(result);
+        WSACleanup();
+        exit(1);
+    }
+
+
+    ///BIND SOCKET
+    iResult = bind(ListenSocket, result->ai_addr, (int) result->ai_addrlen);
+    if (iResult == SOCKET_ERROR) {
+        cout << "Bind failed with error: " << WSAGetLastError() << endl;
+        freeaddrinfo(result);
+        closesocket(ListenSocket);
+        WSACleanup();
+        exit(1);
+    }
+
+    freeaddrinfo(result);
+
+    ///LISTEN ON SOCKET
+
+    if (listen(ListenSocket, SOMAXCONN) == SOCKET_ERROR) {
+        cout << "Listen failed with error: " << WSAGetLastError() << endl;
+        closesocket(ListenSocket);
+        WSACleanup();
+        exit(1);
+    }
+
+    ///ACCEPT CONNECTION
+
+    SOCKET DataSocket = INVALID_SOCKET;
+    DataSocket = accept(ListenSocket, NULL, NULL);
+    if (DataSocket == INVALID_SOCKET){
+        cout << "Accept failed with error: " << WSAGetLastError() << endl;
+        closesocket(ListenSocket);
+        WSACleanup();
+        exit(1);
+    }
+
+    return DataSocket;
+}
+
 
 
 int main(int argc, char **argv) {
@@ -132,7 +198,7 @@ int main(int argc, char **argv) {
     }
 
     cout << buffer << endl;
-//pass
+    //pass
 
     strcpy(buffer, "");
     strcpy(buffer, "pass pass");
@@ -178,6 +244,7 @@ int main(int argc, char **argv) {
 
 
     //list
+
     strcpy(buffer, "");
     strcpy(buffer, "list");
     size = strlen(buffer);
@@ -188,13 +255,18 @@ int main(int argc, char **argv) {
         WSACleanup();
         return 1;
     }
+    SOCKET DataSocket = CreateDataSocket();
 
-    iResult = receiveValue(ConnectSocket, size, buffer);
+    iResult = receiveValue(DataSocket, size, buffer);
     if (iResult <= 0) {
         closesocket(ConnectSocket);
         WSACleanup();
         return 1;
     }
+
+    closesocket(DataSocket);
+    cout<<buffer<<endl;
+
 
 
     //quit

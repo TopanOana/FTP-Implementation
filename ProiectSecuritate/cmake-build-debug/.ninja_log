@@ -1,13 +1,7 @@
 # ninja log v5
-3	1808	7229573997976527	CMakeFiles/ProiectSecuritate.dir/main.cpp.obj	b5ca2fd916ceb802
-0	112	7231254593820872	build.ninja	69b777befad9564c
-1813	2052	7229574000410408	ProiectSecuritate.exe	ba6217214417eddd
-21	359	7231254593820872	build.ninja	886d1079cf3264ae
-2	1865	7231254613212224	CMakeFiles/ProiectSecuritate.dir/main.cpp.obj	b5ca2fd916ceb802
-1869	2120	7231254615745125	ProiectSecuritate.exe	ba6217214417eddd
-3	2008	7231266437493278	CMakeFiles/ProiectSecuritate.dir/main.cpp.obj	b5ca2fd916ceb802
-2009	2117	7231266438556068	ProiectSecuritate.exe	ba6217214417eddd
-2	1729	7231267204451132	CMakeFiles/ProiectSecuritate.dir/main.cpp.obj	b5ca2fd916ceb802
-1732	1844	7231267205604150	ProiectSecuritate.exe	ba6217214417eddd
-2	1897	7231267431550339	CMakeFiles/ProiectSecuritate.dir/main.cpp.obj	b5ca2fd916ceb802
-1903	2008	7231267432643210	ProiectSecuritate.exe	ba6217214417eddd
+2	1754	7231331857027989	CMakeFiles/ProiectSecuritate.dir/main.cpp.obj	b5ca2fd916ceb802
+3	106	7231333365991564	ProiectSecuritate.exe	ba6217214417eddd
+0	110	7231333961168138	build.ninja	886d1079cf3264ae
+0	113	7231333961168138	build.ninja	886d1079cf3264ae
+2	1763	7231333979265521	CMakeFiles/ProiectSecuritate.dir/main.cpp.obj	b5ca2fd916ceb802
+1765	1880	7231333980428558	ProiectSecuritate.exe	ba6217214417eddd

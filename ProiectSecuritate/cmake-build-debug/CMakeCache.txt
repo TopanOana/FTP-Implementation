@@ -248,6 +248,12 @@ ProiectSecuritate_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 ProiectSecuritate_SOURCE_DIR:STATIC=D:/UniversityWork/SecuritateFTP/ProiectSecuritate
 
+//The directory containing a CMake configuration file for Shlwapi.lib.
+Shlwapi.lib_DIR:PATH=Shlwapi.lib_DIR-NOTFOUND
+
+//The directory containing a CMake configuration file for shlwapi.lib.
+shlwapi.lib_DIR:PATH=shlwapi.lib_DIR-NOTFOUND
+
 
 ########################
 # INTERNAL cache entries

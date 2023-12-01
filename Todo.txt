@@ -32,9 +32,6 @@ port -> user -> pass -> other cmds
 stubborn read https://www.cs.ubbcluj.ro/~horea.muresan/os/sol-c/26.c
 
 	
-pasv -> user -> pass -> 
-
-port -> user -> pass -> 
 
 port : client -> server care spune serverului sa se conecteze pt transferul de fisiere
 				pe server se deschide inca o conexiune
@@ -46,3 +43,6 @@ PORT h1,h2,h3,h4,p1,p2
 
 PASV 
 --> returns host and port address this server is listening on
+
+ordinea e de fapt:
+USER -> PASS -> PASV|PORT

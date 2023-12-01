@@ -2,6 +2,7 @@
 // Created by Oana on 11/26/2023.
 //
 
+
 #ifndef PROIECTSECURITATE_COMMANDCENTER_H
 #define PROIECTSECURITATE_COMMANDCENTER_H
 
@@ -12,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "Authentication.h"
+#include <windows.h>
 
 
 #define USER_COMMAND "user"
@@ -89,8 +91,12 @@ char *cwdCommand(string arguments) {
     int result = _stat(arguments.c_str(), &structure);
     if (result < 0)
         return "false";
-    else
-        return "true";
+    else {
+        char *path;
+//        PathCanonicalizeA(path, arguments.c_str());
+        strcpy(path, arguments.c_str());
+        return path;
+    }
 }
 
 void listCommand(char *result, int size, string arguments) {
@@ -109,7 +115,6 @@ void listCommand(char *result, int size, string arguments) {
         strcpy(result, "not a directory");
     }
 }
-
 
 
 #endif //PROIECTSECURITATE_COMMANDCENTER_H

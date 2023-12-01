@@ -4,9 +4,11 @@
 #include <windows.h>
 #include <unistd.h>
 
-#define DEFAULT_PORT "27015"
+#define CMD_PORT "21"
 
 using namespace std;
+
+char DATA_PORT[100] = "127.0.0.1:1285";
 
 int sendValue(SOCKET ConnectSocket, size_t length, char *value) {
     size_t copyLength = htonl(length);
@@ -70,7 +72,7 @@ int main(int argc, char **argv) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    iResult = getaddrinfo(argv[1], DEFAULT_PORT, &hints, &result);
+    iResult = getaddrinfo(argv[1], CMD_PORT, &hints, &result);
     if (iResult != 0) {
         cout << "getaddrinfo failed: " << iResult << endl;
         WSACleanup();
@@ -131,6 +133,18 @@ int main(int argc, char **argv) {
 
     cout << buffer << endl;
 //pass
+
+    strcpy(buffer, "");
+    strcpy(buffer, "pass pass");
+    size = strlen(buffer);
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
     iResult = receiveValue(ConnectSocket, size, buffer);
     if (iResult <= 0) {
         closesocket(ConnectSocket);
@@ -139,13 +153,63 @@ int main(int argc, char **argv) {
     }
 
     cout << buffer << endl;
-//list
+
+    ///port
+    strcpy(buffer, "");
+    strcpy(buffer, "port 127,0,0,1,5,5");
+    size = strlen(buffer);
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
     iResult = receiveValue(ConnectSocket, size, buffer);
     if (iResult <= 0) {
         closesocket(ConnectSocket);
         WSACleanup();
         return 1;
     }
+
+    cout << buffer << endl;
+
+
+
+    //list
+    strcpy(buffer, "");
+    strcpy(buffer, "list");
+    size = strlen(buffer);
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    iResult = receiveValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
+
+    //quit
+
+    strcpy(buffer, "");
+    strcpy(buffer, "quit");
+    size = strlen(buffer);
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
 
     cout << buffer << endl;
 

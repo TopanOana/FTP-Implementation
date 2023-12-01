@@ -6,9 +6,12 @@
 #include "CommandCenter.h"
 
 #define DEFAULT_PORT "27015"
+#define CMD_PORT "21"
 #define ARGUMENT_ERROR "argument not accepted. cannot use forbidden characters: \% \;"
 
 using namespace std;
+
+char DATA_PORT[100] = "20";
 
 vector<thread> allThreads;
 
@@ -83,6 +86,11 @@ void workerThread(SOCKET ClientSocket) {
     char current_command[100];
     char current_command_word[100];
     char command_arguments[100];
+
+
+    ///mode set
+    /// 0 not chosen, 1 active, 2 passive
+    int mode = 0;
     /*
      * FOR RECV
      *  WSAEMSGSIZE -> error
@@ -92,21 +100,28 @@ void workerThread(SOCKET ClientSocket) {
     int i = 0;
     size_t bufferSize;
 
-    int iResult = receiveValue(ClientSocket, bufferSize, current_command);
+    int iResult;
 
-    if (iResult <= 0) {
-        return;
-    }
 
-    strcpy(current_command_word, getCommandWord(current_command).c_str());
 
-    while (strcmp(current_command_word, "quit") != 0) {
+    //AUTHENTICATION
+
+    while (!authenticated) {
+        iResult = receiveValue(ClientSocket, bufferSize, current_command);
+
+        if (iResult <= 0) {
+            return;
+        }
+
+        strcpy(current_command_word, getCommandWord(current_command).c_str());
 
         char return_val[1024];
         string arguments;
 
+
         if (strcmp(current_command, current_command_word) != 0)
             arguments = getCommandArguments(current_command);
+
 
         if (strcmp(current_command_word, USER_COMMAND) == 0) {
             if (arguments.empty()) {
@@ -123,9 +138,7 @@ void workerThread(SOCKET ClientSocket) {
                 cout << "user already logged in!";
                 strcpy(return_val, "user already logged in!");
             }
-        }
-
-        if (strcmp(current_command_word, PASS_COMMAND) == 0) {
+        } else if (strcmp(current_command_word, PASS_COMMAND) == 0) {
             if (arguments.empty()) {
                 strcpy(return_val, ARGUMENT_ERROR);
             } else if (strcmp(current_user, "") == 0) {
@@ -139,7 +152,98 @@ void workerThread(SOCKET ClientSocket) {
                     authenticated = true;
                 }
             }
+        } else {
+            strcpy(return_val, "command not accepted for authentication!");
         }
+
+        size_t size = strlen(return_val);
+
+        iResult = sendValue(ClientSocket, size, return_val);
+
+        if (iResult <= 0) {
+            return;
+        }
+
+    }
+
+    while (mode == 0) {
+        iResult = receiveValue(ClientSocket, bufferSize, current_command);
+
+        if (iResult <= 0) {
+            return;
+        }
+
+        strcpy(current_command_word, getCommandWord(current_command).c_str());
+
+        char toSend[100] = "";
+
+        if (strcmp(current_command_word, "port") == 0) {
+            strcpy(command_arguments, getCommandArguments(current_command).c_str());
+
+            size_t lengthOfArgs = strlen(command_arguments);
+            char newAddress[100] = "";
+            int index = 0;
+            char *p = strtok(command_arguments, ","); //primul strtok
+            strcat(newAddress, p);
+            strcat(newAddress, ".");
+            p = strtok(NULL, ","); //al doilea strtok
+            strcat(newAddress, p);
+            strcat(newAddress, ".");
+            p = strtok(NULL, ","); //al treilea strtok
+            strcat(newAddress, p);
+            strcat(newAddress, ".");
+            p = strtok(NULL, ","); //al patrulea strtok
+            strcat(newAddress, p);
+            strcat(newAddress, ":");
+            p = strtok(NULL, ",");
+            int p1 = atoi(p);
+            p = strtok(NULL, ",");
+            int p2 = atoi(p);
+            int finalPort = (p1 * 256) + p2;
+            strcat(newAddress, to_string(finalPort).c_str());
+
+            strcpy(DATA_PORT, newAddress);
+
+            strcpy(toSend, "ack");
+
+            iResult = sendValue(ClientSocket, strlen(toSend), toSend);
+            if (iResult <= 0)
+                return;
+
+            mode = 1;
+
+
+        } else if (strcmp(current_command_word, "pasv") == 0) {
+
+            mode = 2;
+
+        } else {
+
+            strcpy(toSend, "To start the server, use port or pasv to determine the mode");
+            iResult = sendValue(ClientSocket, strlen(toSend), toSend);
+            if (iResult <= 0)
+                return;
+        }
+    }
+
+
+    iResult = receiveValue(ClientSocket, bufferSize, current_command);
+
+    if (iResult <= 0) {
+        return;
+    }
+
+    strcpy(current_command_word, getCommandWord(current_command).c_str());
+
+    while (strcmp(current_command_word, "quit") != 0) {
+
+        char return_val[1024];
+        string arguments;
+
+        if (strcmp(current_command, current_command_word) != 0)
+            arguments = getCommandArguments(current_command);
+
+
 
 
         if (strcmp(current_command_word, LIST_COMMAND) == 0) {
@@ -157,22 +261,20 @@ void workerThread(SOCKET ClientSocket) {
             }
         }
 
-        if (strcmp(current_command_word, CWD_COMMAND) == 0){
-            if (authenticated){
-                if (arguments.empty()){
-                    if (strcmp(current_command, current_command_word) == 0){
+        if (strcmp(current_command_word, CWD_COMMAND) == 0) {
+            if (authenticated) {
+                if (arguments.empty()) {
+                    if (strcmp(current_command, current_command_word) == 0) {
                         strcpy(return_val, "an path must be provided");
-                    }
-                    else{
+                    } else {
                         strcpy(return_val, ARGUMENT_ERROR);
                     }
-                }
-                else{
-                    if (strcmp(cwdCommand(arguments), "true")){
+                } else {
+                    if (strcmp(cwdCommand(arguments), "true")) {
 //                        strcpy(current_directory, )
                     }
                 }
-            }else{
+            } else {
                 strcpy(return_val, "user must be logged in");
             }
         }
@@ -186,12 +288,11 @@ void workerThread(SOCKET ClientSocket) {
             return;
         }
 
-        if (i == 2)
-            strcpy(current_command, "quit");
-        else if (i == 0)
-            strcpy(current_command, "pass pass");
-        else
-            strcpy(current_command, "list ..");
+        iResult = receiveValue(ClientSocket, size, current_command);
+
+        if (iResult <= 0) {
+            return;
+        }
 
         strcpy(current_command_word, getCommandWord(current_command).c_str());
 
@@ -230,7 +331,7 @@ int main() {
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
 
-    iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
+    iResult = getaddrinfo(NULL, CMD_PORT, &hints, &result);
     if (iResult != 0) {
         std::cout << "getaddrinfo failed: " << iResult << endl;
         WSACleanup();

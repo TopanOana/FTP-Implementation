@@ -119,7 +119,7 @@ void listCommand(char *result, int size, string arguments) {
 
 void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
     struct _stat structure;
-    char filepath[100] = "";
+    char filepath[500] = "";
     strcat(filepath, currentDirectory);
     strcat(filepath, "\\");
     strcat(filepath, arguments.c_str());
@@ -141,6 +141,13 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
             pthread_exit(nullptr);
         }
 
+
+        strcpy(buffer, strrchr(filepath, '\\') + 1);
+        res = sendValue(DataSocket, strlen(buffer), buffer);
+        if (res <= 0) {
+            pthread_exit(nullptr);
+        }
+
         res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
         if (res <= 0) {
             pthread_exit(nullptr);
@@ -148,7 +155,7 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
 
 
         int fileDescriptor = open(filepath, O_RDONLY);
-        if (fileDescriptor > 0){
+        if (fileDescriptor > 0) {
             while (total < count && (k = read(fileDescriptor, buffer, 100)) > 0) {
                 total += k;
                 buffer[k] = 0;
@@ -157,6 +164,7 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
                     pthread_exit(nullptr);
                 }
             }
+            close(fileDescriptor);
         }
 
     }

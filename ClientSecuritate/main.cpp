@@ -3,6 +3,7 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "SocketFunctions.h"
 
 #define CMD_PORT "21"
@@ -292,22 +293,38 @@ int main(int argc, char **argv) {
 
     DataSocket = CreateDataSocketActiveMode();
 
-    char buf[50]="";
+    char buf[500] = "";
     size_t length;
     iResult = receiveValue(DataSocket, length, buf);
-    if (iResult <=0){
+    if (iResult <= 0) {
         closesocket(ConnectSocket);
         cout << "error receivijng file ok" << endl;
         WSACleanup();
         return 1;
     }
 
-    if (!(strcmp(buf,"ok")==0)){
+    if (!(strcmp(buf, "ok") == 0)) {
         closesocket(ConnectSocket);
         cout << "error file cannot be used" << endl;
         WSACleanup();
         return 1;
     }
+
+    iResult = receiveValue(DataSocket, length, buf);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        cout << "error receivijng file name" << endl;
+        WSACleanup();
+        return 1;
+    }
+
+    cout << buf << endl;
+
+    char filepath[500];
+    strcpy(filepath, "D:\\UniversityWork\\SecuritateFTP\\");
+    strcat(filepath, buf);
+
+
 
     size_t filesize;
     iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
@@ -320,14 +337,21 @@ int main(int argc, char **argv) {
     }
 
     filesize = ntohl(filesize);
+    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
+    if (fileDescriptor > 0){
+        char filebuf[100];
+        int count = 0, k = 0;
+        size_t aux = 0;
+        while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
+            count += aux;
+            int check = write(fileDescriptor, filebuf, aux);
+            cout << filebuf;
+        }
 
-    char filebuf[100];
-    int count = 0, k = 0;
-    size_t aux = 0;
-    while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
-        count += aux;
-        cout << filebuf;
+        close(fileDescriptor);
     }
+
+
 
 
 

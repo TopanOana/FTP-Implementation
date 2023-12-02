@@ -3,6 +3,7 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <unistd.h>
+#include "SocketFunctions.h"
 
 #define CMD_PORT "21"
 
@@ -12,47 +13,6 @@ char DATA_IP[100] = "127.0.0.1";
 char DATA_PORT[100] = "1285";
 int currentCommand = 1;
 
-int sendValue(SOCKET ConnectSocket, size_t length, char *value) {
-    size_t copyLength = htonl(length);
-
-    int result = send(ConnectSocket, (char *) &copyLength, sizeof(size_t), 0);
-
-    if (result <= 0) {
-        cout << "Error occurred on sending size of buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    result = send(ConnectSocket, value, sizeof(char) * length, 0);
-
-    if (result <= 0) {
-        cout << "Error occurred on sending buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    return result;
-
-}
-
-int receiveValue(SOCKET ConnectSocket, size_t &length, char *value) {
-    int result = recv(ConnectSocket, (char *) &length, sizeof(size_t), 0);
-
-    if (result <= 0) {
-        cout << "Error occured on reading size of buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    length = ntohl(length);
-
-    result = recv(ConnectSocket, value, sizeof(char) * length, 0);
-
-    if (result <= 0) {
-        cout << "Error occured on reading buffer: " << WSAGetLastError() << endl;
-        return result;
-    }
-
-    value[length] = 0;
-    return result;
-}
 
 SOCKET CreateDataSocketActiveMode() {
     ///CREATE SOCKET
@@ -332,8 +292,25 @@ int main(int argc, char **argv) {
 
     DataSocket = CreateDataSocketActiveMode();
 
+    char buf[50]="";
+    size_t length;
+    iResult = receiveValue(DataSocket, length, buf);
+    if (iResult <=0){
+        closesocket(ConnectSocket);
+        cout << "error receivijng file ok" << endl;
+        WSACleanup();
+        return 1;
+    }
+
+    if (!(strcmp(buf,"ok")==0)){
+        closesocket(ConnectSocket);
+        cout << "error file cannot be used" << endl;
+        WSACleanup();
+        return 1;
+    }
+
     size_t filesize;
-    iResult = recv(DataSocket, (char *) filesize, sizeof(size_t), 0);
+    iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
 
     if (iResult <= 0) {
         closesocket(ConnectSocket);
@@ -348,7 +325,7 @@ int main(int argc, char **argv) {
     int count = 0, k = 0;
     size_t aux = 0;
     while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
-        count += ntohl(aux);
+        count += aux;
         cout << filebuf;
     }
 

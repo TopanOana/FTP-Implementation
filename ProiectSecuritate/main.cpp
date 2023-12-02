@@ -41,7 +41,7 @@ SOCKET CreateDataSocketActiveMode() {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    char port[10] ;
+    char port[10];
     strcpy(port, to_string(atoi(DATA_PORT) + currentCommand).c_str());
 
 
@@ -301,27 +301,30 @@ void workerThread(SOCKET ClientSocket) {
 
         }
 
-        if (strcmp(current_command_word, RETR_COMMAND) == 0){
+        if (strcmp(current_command_word, RETR_COMMAND) == 0) {
             if (arguments.empty()) {
                 if (strcmp(current_command, current_command_word) == 0) {
                     strcpy(return_val, "an path must be provided");
                 } else {
                     strcpy(return_val, ARGUMENT_ERROR);
                 }
-            }
-            else{
+            } else {
                 retrCommand(DataSocket, arguments, current_directory);
             }
         }
 
+        size_t size;
 
-        size_t size = strlen(return_val);
+        if (strcmp(current_command_word, RETR_COMMAND) != 0) {
+            size = strlen(return_val);
 
-        iResult = sendValue(DataSocket, size, return_val);
+            iResult = sendValue(DataSocket, size, return_val);
 
-        if (iResult <= 0) {
-            return;
+            if (iResult <= 0) {
+                return;
+            }
         }
+
 
         closesocket(DataSocket);
 

@@ -117,14 +117,14 @@ void listCommand(char *result, int size, string arguments) {
 }
 
 
-void retrCommand(SOCKET DataSocket, string arguments, char* currentDirectory) {
+void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
     struct _stat structure;
     char filepath[100] = "";
     strcat(filepath, currentDirectory);
     strcat(filepath, "\\");
     strcat(filepath, arguments.c_str());
 
-    int result = _stat(arguments.c_str(), &structure);
+    int result = _stat(filepath, &structure);
     char buffer[101] = "";
     if (result < 0) {
         strcpy(buffer, "Error accessing file");
@@ -135,21 +135,30 @@ void retrCommand(SOCKET DataSocket, string arguments, char* currentDirectory) {
     } else {
         int k, count = structure.st_size, total = 0;
         size_t copySize = htonl(count);
-        int res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
+        strcpy(buffer, "ok");
+        int res = sendValue(DataSocket, strlen(buffer), buffer);
+        if (res <= 0) {
+            pthread_exit(nullptr);
+        }
+
+        res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
         if (res <= 0) {
             pthread_exit(nullptr);
         }
 
 
-        int fileDescriptor = open(arguments.c_str(), O_RDONLY);
-        while (total < count && (k = read(fileDescriptor, buffer, 100)) > 0) {
-            total += k;
-            buffer[100] = 0;
-            int res = sendValue(DataSocket, strlen(buffer), buffer);
-            if (res <= 0) {
-                pthread_exit(nullptr);
+        int fileDescriptor = open(filepath, O_RDONLY);
+        if (fileDescriptor > 0){
+            while (total < count && (k = read(fileDescriptor, buffer, 100)) > 0) {
+                total += k;
+                buffer[k] = 0;
+                int res = sendValue(DataSocket, strlen(buffer), buffer);
+                if (res <= 0) {
+                    pthread_exit(nullptr);
+                }
             }
         }
+
     }
 }
 

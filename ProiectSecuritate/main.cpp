@@ -261,6 +261,7 @@ void workerThread(SOCKET ClientSocket) {
         SOCKET DataSocket = CreateDataSocketActiveMode();
 
         char return_val[1024];
+        strcpy(return_val, "");
         string arguments;
 
         if (strcmp(current_command, current_command_word) != 0)
@@ -304,7 +305,7 @@ void workerThread(SOCKET ClientSocket) {
         if (strcmp(current_command_word, RETR_COMMAND) == 0) {
             if (arguments.empty()) {
                 if (strcmp(current_command, current_command_word) == 0) {
-                    strcpy(return_val, "an path must be provided");
+                    strcpy(return_val, "a path must be provided");
                 } else {
                     strcpy(return_val, ARGUMENT_ERROR);
                 }
@@ -313,9 +314,21 @@ void workerThread(SOCKET ClientSocket) {
             }
         }
 
+        if (strcmp(current_command_word, STOR_COMMAND) == 0) {
+            if (arguments.empty()) {
+                if (strcmp(current_command, current_command_word) == 0) {
+                    strcpy(return_val, "a path must be provided");
+                } else {
+                    strcpy(return_val, ARGUMENT_ERROR);
+                }
+            } else {
+                storCommand(DataSocket, arguments.c_str(), current_directory);
+            }
+        }
+
         size_t size;
 
-        if (strcmp(current_command_word, RETR_COMMAND) != 0) {
+        if (strcmp(return_val, "") != 0) {
             size = strlen(return_val);
 
             iResult = sendValue(DataSocket, size, return_val);

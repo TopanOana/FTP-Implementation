@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "SocketFunctions.h"
+#include <shlwapi.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define CMD_PORT "21"
 
@@ -303,7 +306,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!(strcmp(buf, "ok") == 0)) {
+    if (strcmp(buf, "ok") != 0) {
         closesocket(ConnectSocket);
         cout << "error file cannot be used" << endl;
         WSACleanup();
@@ -325,7 +328,6 @@ int main(int argc, char **argv) {
     strcat(filepath, buf);
 
 
-
     size_t filesize;
     iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
 
@@ -338,7 +340,7 @@ int main(int argc, char **argv) {
 
     filesize = ntohl(filesize);
     int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
-    if (fileDescriptor > 0){
+    if (fileDescriptor > 0) {
         char filebuf[100];
         int count = 0, k = 0;
         size_t aux = 0;
@@ -350,6 +352,65 @@ int main(int argc, char **argv) {
 
         close(fileDescriptor);
     }
+
+    closesocket(DataSocket);
+
+    //stor
+    char filepathstor[100] = "D:\\UniversityWork\\SecuritateFTP\\Todo.txt";
+
+    strcpy(buffer, "");
+    strcpy(buffer, "stor ");
+    strcat(buffer, filepathstor);
+
+    iResult = sendValue(ConnectSocket, size, buffer);
+    if (iResult <= 0) {
+        closesocket(ConnectSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    DataSocket = CreateDataSocketActiveMode();
+
+    struct _stat structure;
+    int pleaseee = _stat(filepathstor, &structure);
+    char newBuffer[101] = "";
+    if (pleaseee < 0) {
+        strcpy(newBuffer, "Error accessing file");
+        int res = sendValue(DataSocket, strlen(newBuffer), newBuffer);
+        if (res <= 0) {
+            pthread_exit(nullptr);
+        }
+    } else {
+        int k, count = structure.st_size, total = 0;
+        size_t copySize = htonl(count);
+        strcpy(newBuffer, "ok");
+        int res = sendValue(DataSocket, strlen(newBuffer), newBuffer);
+        if (res <= 0) {
+            pthread_exit(nullptr);
+        }
+
+
+        res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
+        if (res <= 0) {
+            pthread_exit(nullptr);
+        }
+
+        int fd = open(filepathstor, O_RDONLY);
+        if (fileDescriptor > 0) {
+            while (total < count && (k = read(fileDescriptor, buffer, 100)) > 0) {
+                total += k;
+                buffer[k] = 0;
+                int res = sendValue(DataSocket, strlen(buffer), buffer);
+                if (res <= 0) {
+                    pthread_exit(nullptr);
+                }
+            }
+            close(fileDescriptor);
+        }
+    }
+
+
+
 
 
 

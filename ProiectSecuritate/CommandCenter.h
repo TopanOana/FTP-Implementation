@@ -170,5 +170,45 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
     }
 }
 
+void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirectory) {
+    char filepath[500] = "";
+    strcpy(filepath, currentDirectory);
+    strcat(filepath, "\\");
+    strcat(filepath, strrchr(arguments, '\\') + 1);
+
+    char buffer[100];
+    size_t aux;
+    int result = receiveValue(DataSocket, aux, buffer);
+    if (result <= 0) {
+        pthread_exit(nullptr);
+    }
+
+    if (strcmp(buffer, "ok") != 0) {
+        cout << buffer << " for stor command" << endl;
+        return;
+    }
+
+
+    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
+    if (fileDescriptor > 0) {
+        size_t filesize;
+        int iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
+        if (iResult <= 0) {
+            pthread_exit(nullptr);
+        }
+        filesize = ntohl(filesize);
+
+        char filebuf[100];
+        int count = 0, k = 0;
+        size_t aux = 0;
+        while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
+            count += aux;
+            write(fileDescriptor, filebuf, aux);
+        }
+        close(fileDescriptor);
+    }
+
+}
+
 
 #endif //PROIECTSECURITATE_COMMANDCENTER_H

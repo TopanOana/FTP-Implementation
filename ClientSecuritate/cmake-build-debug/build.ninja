@@ -65,7 +65,7 @@ build CMakeFiles/ClientSecuritate.dir/main.cpp.obj: CXX_COMPILER__ClientSecurita
 
 build ClientSecuritate.exe: CXX_EXECUTABLE_LINKER__ClientSecuritate_Debug CMakeFiles/ClientSecuritate.dir/main.cpp.obj
   FLAGS = -g
-  LINK_LIBRARIES = -lws2_32  -lwsock32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  LINK_LIBRARIES = -lws2_32  -lwsock32  -lShlwapi  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\ClientSecuritate.dir
   POST_BUILD = cd .
   PRE_LINK = cd .

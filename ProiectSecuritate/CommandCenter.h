@@ -17,6 +17,7 @@
 #include <shlwapi.h>
 #include <fcntl.h>
 #include "SocketFunctions.h"
+#include "Modes.h"
 
 
 #define USER_COMMAND "user"
@@ -99,25 +100,32 @@ void cwdCommand(string arguments, char *path) {
     }
 }
 
-void listCommand(char *result, int size, char* arguments) {
+void listCommand(SOCKET DataSocket, char *arguments, char *result) {
 
     DIR *dir;
     struct dirent *en;
     dir = opendir(arguments); //open directory from arguments
+    char line[_MAX_PATH + 2] = "";
 
     if (dir) {
         while ((en = readdir(dir)) != NULL) {
-            strncat(result, en->d_name, size - strlen(result) - 1);
-            strncat(result, "\n", size - strlen(result) - 1);
+            strcpy(line, en->d_name);
+            strcat(line, "\n");
+            int res = send(DataSocket, line, sizeof(char) * strlen(line), 0);
+            if (res <= 0) {
+                strcpy(result, "426 Connection closed; transfer aborted");
+            }
+//            strncat(result, en->d_name, size - strlen(result) - 1);
+//            strncat(result, "\n", size - strlen(result) - 1);
         }
         closedir(dir);
     } else {
-        strcpy(result, "not a directory");
+        strcpy(result, "550 File does not exist.");
     }
 }
 
 
-void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
+void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory, SOCKET ClientSocket) {
     struct _stat structure;
     char filepath[500] = "";
     strcat(filepath, currentDirectory);
@@ -127,31 +135,31 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
     int result = _stat(filepath, &structure);
     char buffer[101] = "";
     if (result < 0) {
-        strcpy(buffer, "Error accessing file");
-        int res = sendValue(DataSocket, strlen(buffer), buffer);
+        strcpy(buffer, "550 File does not exist.");
+        int res = sendValue(ClientSocket, strlen(buffer), buffer);
         if (res <= 0) {
             pthread_exit(nullptr);
         }
     } else {
         int k, count = structure.st_size, total = 0;
-        size_t copySize = htonl(count);
-        strcpy(buffer, "ok");
-        int res = sendValue(DataSocket, strlen(buffer), buffer);
-        if (res <= 0) {
-            pthread_exit(nullptr);
-        }
+//        size_t copySize = htonl(count);
+//        strcpy(buffer, "ok");
+//        int res = sendValue(DataSocket, strlen(buffer), buffer);
+//        if (res <= 0) {
+//            pthread_exit(nullptr);
+//        }
 
 
         strcpy(buffer, strrchr(filepath, '\\') + 1);
-        res = sendValue(DataSocket, strlen(buffer), buffer);
-        if (res <= 0) {
-            pthread_exit(nullptr);
-        }
+//        int res = sendValue(DataSocket, strlen(buffer), buffer);
+//        if (res <= 0) {
+//            pthread_exit(nullptr);
+//        }
 
-        res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
-        if (res <= 0) {
-            pthread_exit(nullptr);
-        }
+//        int res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
+//        if (res <= 0) {
+//            pthread_exit(nullptr);
+//        }
 
 
 //        int fileDescriptor = open(filepath, O_RDONLY);
@@ -161,9 +169,14 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
             while (total < count && (k = fread(buffer, 1, 100, src_fd)) > 0) {
                 total += k;
                 buffer[k] = 0;
-                int res = sendValue(DataSocket, strlen(buffer), buffer);
+                int res = send(DataSocket, buffer, sizeof(char) * k, 0);
                 if (res <= 0) {
-                    pthread_exit(nullptr);
+                    char value[100] = "426 Connection closed; transfer aborted.";
+                    res = sendValue(ClientSocket, strlen(value), value);
+                    if (res <= 0) {
+                        pthread_exit(nullptr);
+                    }
+                    break;
                 }
             }
             fclose(src_fd);
@@ -180,39 +193,101 @@ void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirector
 
     char buffer[100];
     size_t aux;
-    int result = receiveValue(DataSocket, aux, buffer);
-    if (result <= 0) {
-        pthread_exit(nullptr);
-    }
-
-    if (strcmp(buffer, "ok") != 0) {
-        cout << buffer << " for stor command" << endl;
-        return;
-    }
+//    int result = receiveValue(DataSocket, aux, buffer);
+//    if (result <= 0) {
+//        pthread_exit(nullptr);
+//    }
+//
+//    if (strcmp(buffer, "ok") != 0) {
+//        cout << buffer << " for stor command" << endl;
+//        return;
+//    }
 
 
 //    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
     FILE *dst_fd = fopen(filepath, "wb");
     if (dst_fd != NULL) {
-        size_t filesize;
-        int iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
-        if (iResult <= 0) {
-            pthread_exit(nullptr);
-        }
-        filesize = ntohl(filesize);
+//        size_t filesize;
+//        int iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
+//        if (iResult <= 0) {
+//            pthread_exit(nullptr);
+//        }
+//        filesize = ntohl(filesize);
 
         char filebuf[100];
         int count = 0, k = 0;
-        size_t aux = 0;
-        while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
-            count += aux;
+//        size_t aux = 0;
+        while ((k = recv(DataSocket, filebuf, sizeof(char) * 99, 0)) > 0) {
+            filebuf[k] = 0;
+            count += k;
             cout << filebuf;
-            fwrite(filebuf, 1, aux, dst_fd);
+            fwrite(filebuf, 1, k, dst_fd);
         }
         fclose(dst_fd);
     }
 
 }
 
+
+void pasvCommand(SOCKET ClientSocket){
+    char send[100];
+    char auxiliary[20];
+    strcpy(auxiliary, DATA_IP);
+    strcpy(send, "227 Entering Passive Mode (");
+
+    char *p = strtok(auxiliary, ".");
+    strcat(send, p);
+    strcat(send, ",");
+    p = strtok(p, ".");
+    strcat(send, p);
+    strcat(send, ",");
+    p = strtok(p, ".");
+    strcat(send, p);
+    strcat(send, ",");
+    p = strtok(p, ".");
+    strcat(send, p);
+    strcat(send, ",");
+
+    int p1 = atoi(DATA_PORT) / 256;
+    int p2 = atoi(DATA_PORT) % 256;
+
+    strcat(send, to_string(p1).c_str());
+    strcat(send, ",");
+    strcat(send, to_string(p2).c_str());
+    strcat(send, ")");
+
+    int result = sendValue(ClientSocket, strlen(send), send);
+    if (result <=0){
+        closesocket(ClientSocket);
+        pthread_exit(nullptr);
+    }
+
+}
+
+void portCommand(char* command_arguments){
+    char newAddress[100] = "";
+
+    char *p = strtok(command_arguments, ","); //primul strtok
+    strcat(newAddress, p);
+    strcat(newAddress, ".");
+    p = strtok(NULL, ","); //al doilea strtok
+    strcat(newAddress, p);
+    strcat(newAddress, ".");
+    p = strtok(NULL, ","); //al treilea strtok
+    strcat(newAddress, p);
+    strcat(newAddress, ".");
+    p = strtok(NULL, ","); //al patrulea strtok
+    strcat(newAddress, p);
+
+    strcpy(DATA_IP, newAddress);
+
+
+    p = strtok(NULL, ",");
+    int p1 = atoi(p);
+    p = strtok(NULL, ",");
+    int p2 = atoi(p);
+    int finalPort = (p1 * 256) + p2;
+    strcpy(DATA_PORT, to_string(finalPort).c_str());
+}
 
 #endif //PROIECTSECURITATE_COMMANDCENTER_H

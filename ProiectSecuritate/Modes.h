@@ -13,7 +13,7 @@
 
 using namespace std;
 
-char DATA_PORT[100] = "20";
+char DATA_PORT[100] = "2000";
 char DATA_IP[100] = "127.0.0.1";
 int currentCommand = 1;
 
@@ -104,10 +104,7 @@ SOCKET CreateDataSocketPassiveMode(SOCKET ClientSocket) {
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
 
-    char port[10];
-    strcpy(port, to_string(atoi(DATA_PORT) + currentCommand).c_str());
-
-    iResult = getaddrinfo(DATA_IP, port, &hints, &result);
+    iResult = getaddrinfo(DATA_IP, portBuffer, &hints, &result);
     if (iResult != 0) {
         std::cout << "getaddrinfo failed: " << iResult << endl;
         WSACleanup();

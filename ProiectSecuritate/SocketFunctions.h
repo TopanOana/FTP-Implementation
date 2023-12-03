@@ -53,4 +53,5 @@ int receiveValue(SOCKET ClientSocket, size_t &length, char *value) {
 }
 
 
+
 #endif //PROIECTSECURITATE_SOCKETFUNCTIONS_H

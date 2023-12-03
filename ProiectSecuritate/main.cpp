@@ -3,15 +3,15 @@
 #include <ws2tcpip.h>
 #include <thread>
 #include <vector>
+#include <regex>
 #include "CommandCenter.h"
 #include "Modes.h"
 
 #define DEFAULT_PORT "27015"
 #define CMD_PORT "21"
-#define ARGUMENT_ERROR "argument not accepted. cannot use forbidden characters: \% \;"
+#define ARGUMENT_ERROR "501 Syntax error in parameters or arguments"
 
 using namespace std;
-
 
 
 vector<thread> allThreads;
@@ -28,8 +28,6 @@ BOOL WINAPI consoleHandler(DWORD signal) {
     }
     return true;
 }
-
-
 
 
 void workerThread(SOCKET ClientSocket) {
@@ -67,7 +65,10 @@ void workerThread(SOCKET ClientSocket) {
 
     //AUTHENTICATION
 
-    while (!authenticated) {
+    int counter = 0;
+
+    while (!authenticated && counter < 3) {
+        counter++;
         iResult = receiveValue(ClientSocket, bufferSize, current_command);
 
         if (iResult <= 0) {
@@ -90,31 +91,33 @@ void workerThread(SOCKET ClientSocket) {
             } else if (strcmp(current_user, "") == 0) {
                 strcpy(return_val, userCommand(arguments));
                 if (strcmp(return_val, "false") == 0) {
-                    cout << "user does not exist!" << endl;
-                    strcpy(return_val, "user does not exist!");
+//                    cout << "user does not exist!" << endl;
+                    strcpy(return_val, "430 Invalid username or password.");
                 } else {
                     strcpy(current_user, return_val);
+                    strcpy(return_val, "331 User name okay, need password.");
                 }
             } else {
-                cout << "user already logged in!";
-                strcpy(return_val, "user already logged in!");
+//                cout << "user already logged in!";
+                strcpy(return_val, "331 User name okay, need password.");
             }
         } else if (strcmp(current_command_word, PASS_COMMAND) == 0) {
             if (arguments.empty()) {
                 strcpy(return_val, ARGUMENT_ERROR);
             } else if (strcmp(current_user, "") == 0) {
-                strcpy(return_val, "user hasn't been saved!");
+                strcpy(return_val, "332 Need account for login");
             } else {
                 strcpy(return_val, passCommand(current_user, arguments));
                 if (strcmp(return_val, "false") == 0) {
-                    cout << "user and password do not match!" << endl;
-                    strcpy(return_val, "user and password do not match!");
+//                    cout << "user and password do not match!" << endl;
+                    strcpy(return_val, "430 Invalid username or password.");
                 } else {
                     authenticated = true;
+                    strcpy(return_val, "230 Logged in");
                 }
             }
         } else {
-            strcpy(return_val, "command not accepted for authentication!");
+            strcpy(return_val, "530 Not logged in");
         }
 
         size_t size = strlen(return_val);
@@ -126,6 +129,12 @@ void workerThread(SOCKET ClientSocket) {
         }
 
     }
+
+    if (!authenticated && counter >= 3) {
+
+        closesocket(ClientSocket);
+    }
+
 
     while (mode == 0) {
         iResult = receiveValue(ClientSocket, bufferSize, current_command);
@@ -141,51 +150,36 @@ void workerThread(SOCKET ClientSocket) {
         if (strcmp(current_command_word, "port") == 0) {
             strcpy(command_arguments, getCommandArguments(current_command).c_str());
 
-            size_t lengthOfArgs = strlen(command_arguments);
-            char newAddress[100] = "";
-            int index = 0;
-            char *p = strtok(command_arguments, ","); //primul strtok
-            strcat(newAddress, p);
-            strcat(newAddress, ".");
-            p = strtok(NULL, ","); //al doilea strtok
-            strcat(newAddress, p);
-            strcat(newAddress, ".");
-            p = strtok(NULL, ","); //al treilea strtok
-            strcat(newAddress, p);
-            strcat(newAddress, ".");
-            p = strtok(NULL, ","); //al patrulea strtok
-            strcat(newAddress, p);
+            if (strlen(command_arguments) == 0 || !regex_match(command_arguments,
+                                                               regex("^(([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]),){5}([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"))) {
+                strcpy(toSend, ARGUMENT_ERROR);
+            } else {
 
-            strcpy(DATA_IP, newAddress);
+                portCommand(command_arguments);
+                mode = 1;
+            }
 
-
-            p = strtok(NULL, ",");
-            int p1 = atoi(p);
-            p = strtok(NULL, ",");
-            int p2 = atoi(p);
-            int finalPort = (p1 * 256) + p2;
-            strcpy(DATA_PORT, to_string(finalPort).c_str());
-
-
-            strcpy(toSend, "ack");
-
-            iResult = sendValue(ClientSocket, strlen(toSend), toSend);
-            if (iResult <= 0)
-                return;
-
-            mode = 1;
+            if (strlen(toSend) > 0) {
+                iResult = sendValue(ClientSocket, strlen(toSend), toSend);
+                if (iResult <= 0) {
+                    closesocket(ClientSocket);
+                    pthread_exit(nullptr);
+                }
+            }
 
 
         } else if (strcmp(current_command_word, "pasv") == 0) {
-
+            pasvCommand(ClientSocket);
             mode = 2;
 
         } else {
 
-            strcpy(toSend, "To start the server, use port or pasv to determine the mode");
+            strcpy(toSend, "503 Bad sequence of commands");
             iResult = sendValue(ClientSocket, strlen(toSend), toSend);
-            if (iResult <= 0)
-                return;
+            if (iResult <= 0) {
+                closesocket(ClientSocket);
+                pthread_exit(nullptr);
+            }
         }
     }
 
@@ -193,7 +187,8 @@ void workerThread(SOCKET ClientSocket) {
     iResult = receiveValue(ClientSocket, bufferSize, current_command);
 
     if (iResult <= 0) {
-        return;
+        closesocket(ClientSocket);
+        pthread_exit(nullptr);
     }
 
     strcpy(current_command_word, getCommandWord(current_command).c_str());
@@ -222,13 +217,21 @@ void workerThread(SOCKET ClientSocket) {
             } else {
                 strcpy(return_val, "");
                 char directory[500];
-                if (arguments.empty()){
+                if (arguments.empty()) {
                     strcpy(directory, current_directory);
-                }else{
+                } else {
                     strcpy(directory, arguments.c_str());
                 }
 
-                listCommand(return_val, 1024, directory);
+                listCommand(DataSocket, directory, return_val);
+
+                size_t size = strlen(return_val);
+
+                iResult = sendValue(ClientSocket, size, return_val);
+
+                if (iResult <= 0) {
+                    return;
+                }
             }
 
         }
@@ -245,10 +248,19 @@ void workerThread(SOCKET ClientSocket) {
                 char auxiliary[500];
                 cwdCommand(arguments, auxiliary);
                 if (strcmp(auxiliary, "false") == 0) {
-                    strcpy(return_val, "File path doesn't exist or is inaccessible.");
+                    strcpy(return_val, "550 Requested action not taken. File unavailable.");
                 } else {
                     strcpy(current_directory, auxiliary);
-                    strcpy(return_val, "Successfully changed directory");
+                    strcpy(return_val, "250 The current directory has been changed to ");
+                    strcat(return_val, current_directory);
+                }
+
+                size_t size = strlen(return_val);
+
+                iResult = sendValue(ClientSocket, size, return_val);
+
+                if (iResult <= 0) {
+                    return;
                 }
             }
 
@@ -262,7 +274,7 @@ void workerThread(SOCKET ClientSocket) {
                     strcpy(return_val, ARGUMENT_ERROR);
                 }
             } else {
-                retrCommand(DataSocket, arguments, current_directory);
+                retrCommand(DataSocket, arguments, current_directory, ClientSocket);
             }
         }
 
@@ -278,20 +290,10 @@ void workerThread(SOCKET ClientSocket) {
             }
         }
 
-        size_t size;
-
-        if (strcmp(return_val, "") != 0) {
-            size = strlen(return_val);
-
-            iResult = sendValue(DataSocket, size, return_val);
-
-            if (iResult <= 0) {
-                return;
-            }
-        }
-
 
         closesocket(DataSocket);
+
+        size_t size;
 
         iResult = receiveValue(ClientSocket, size, current_command);
 
@@ -306,7 +308,11 @@ void workerThread(SOCKET ClientSocket) {
 
     cout << "end of client" << endl;
 
-    return;
+    char value[100] = "221 Service closing control connection";
+    sendValue(ClientSocket, strlen(value), value);
+
+    closesocket(ClientSocket);
+
 }
 
 

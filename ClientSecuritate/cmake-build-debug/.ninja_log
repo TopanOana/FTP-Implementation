@@ -1,14 +1,6 @@
 # ninja log v5
-2	1292	7232202534995644	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
-1	258	7232276984712934	build.ninja	6b0f0d207ef2ea5e
-1292	1366	7232202535727565	ClientSecuritate.exe	9636561325866d1c
-3	1322	7232285713777252	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
-1322	1396	7232285714509162	ClientSecuritate.exe	57a4c7a80a72f9ee
-2	1284	7232290876205372	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
-1284	1357	7232290876907211	ClientSecuritate.exe	57a4c7a80a72f9ee
-3	1351	7232291905195567	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
-1351	1429	7232291905947536	ClientSecuritate.exe	57a4c7a80a72f9ee
-3	2227	7232293758624010	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
-2227	2396	7232293760288373	ClientSecuritate.exe	57a4c7a80a72f9ee
-2	1309	7232295759152235	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
-1309	1386	7232295759884150	ClientSecuritate.exe	57a4c7a80a72f9ee
+2	1269	7233037423774276	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
+1	258	7233043851434136	build.ninja	6b0f0d207ef2ea5e
+1269	1350	7233037424556324	ClientSecuritate.exe	57a4c7a80a72f9ee
+2	1434	7233055312231487	CMakeFiles/ClientSecuritate.dir/main.cpp.obj	2baf589e44606c9f
+1434	1513	7233055312993480	ClientSecuritate.exe	57a4c7a80a72f9ee

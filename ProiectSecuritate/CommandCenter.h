@@ -99,11 +99,11 @@ void cwdCommand(string arguments, char *path) {
     }
 }
 
-void listCommand(char *result, int size, string arguments) {
+void listCommand(char *result, int size, char* arguments) {
 
     DIR *dir;
     struct dirent *en;
-    dir = opendir(arguments.c_str()); //open directory from arguments
+    dir = opendir(arguments); //open directory from arguments
 
     if (dir) {
         while ((en = readdir(dir)) != NULL) {
@@ -154,9 +154,11 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
         }
 
 
-        int fileDescriptor = open(filepath, O_RDONLY);
-        if (fileDescriptor > 0) {
-            while (total < count && (k = read(fileDescriptor, buffer, 100)) > 0) {
+//        int fileDescriptor = open(filepath, O_RDONLY);
+        FILE *src_fd = fopen(filepath, "rb");
+
+        if (src_fd != NULL) {
+            while (total < count && (k = fread(buffer, 1, 100, src_fd)) > 0) {
                 total += k;
                 buffer[k] = 0;
                 int res = sendValue(DataSocket, strlen(buffer), buffer);
@@ -164,7 +166,7 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory) {
                     pthread_exit(nullptr);
                 }
             }
-            close(fileDescriptor);
+            fclose(src_fd);
         }
 
     }
@@ -189,8 +191,9 @@ void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirector
     }
 
 
-    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
-    if (fileDescriptor > 0) {
+//    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
+    FILE *dst_fd = fopen(filepath, "wb");
+    if (dst_fd != NULL) {
         size_t filesize;
         int iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
         if (iResult <= 0) {
@@ -203,9 +206,10 @@ void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirector
         size_t aux = 0;
         while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
             count += aux;
-            write(fileDescriptor, filebuf, aux);
+            cout << filebuf;
+            fwrite(filebuf, 1, aux, dst_fd);
         }
-        close(fileDescriptor);
+        fclose(dst_fd);
     }
 
 }

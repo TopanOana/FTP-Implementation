@@ -8,84 +8,14 @@
 #include <shlwapi.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "Modes.h"
 
 #define CMD_PORT "21"
 
 using namespace std;
 
-char DATA_IP[100] = "127.0.0.1";
-char DATA_PORT[100] = "1285";
-int currentCommand = 1;
 
 
-SOCKET CreateDataSocketActiveMode() {
-    ///CREATE SOCKET
-    struct addrinfo *result = NULL, *ptr = NULL, hints;
-
-    ZeroMemory(&hints, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-    hints.ai_flags = AI_PASSIVE;
-
-    char port[10];
-    strcpy(port, to_string(atoi(DATA_PORT) + currentCommand).c_str());
-
-    int iResult = getaddrinfo(DATA_IP, port, &hints, &result);
-    if (iResult != 0) {
-        std::cout << "getaddrinfo failed: " << iResult << endl;
-        WSACleanup();
-        exit(1);
-    }
-
-
-    SOCKET ListenSocket = INVALID_SOCKET;
-    ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-
-    if (ListenSocket == INVALID_SOCKET) {
-        cout << "Error at socket() : " << WSAGetLastError() << endl;
-        freeaddrinfo(result);
-        WSACleanup();
-        exit(1);
-    }
-
-
-    ///BIND SOCKET
-    iResult = bind(ListenSocket, result->ai_addr, (int) result->ai_addrlen);
-    if (iResult == SOCKET_ERROR) {
-        cout << "Bind failed with error: " << WSAGetLastError() << endl;
-        freeaddrinfo(result);
-        closesocket(ListenSocket);
-        WSACleanup();
-        exit(1);
-    }
-
-    freeaddrinfo(result);
-
-    ///LISTEN ON SOCKET
-
-    if (listen(ListenSocket, SOMAXCONN) == SOCKET_ERROR) {
-        cout << "Listen failed with error: " << WSAGetLastError() << endl;
-        closesocket(ListenSocket);
-        WSACleanup();
-        exit(1);
-    }
-
-    ///ACCEPT CONNECTION
-
-    SOCKET DataSocket = INVALID_SOCKET;
-    DataSocket = accept(ListenSocket, NULL, NULL);
-    if (DataSocket == INVALID_SOCKET) {
-        cout << "Accept failed with error: " << WSAGetLastError() << endl;
-        closesocket(ListenSocket);
-        WSACleanup();
-        exit(1);
-    }
-
-    currentCommand++;
-
-    return DataSocket;
-}
 
 
 int main(int argc, char **argv) {
@@ -191,7 +121,8 @@ int main(int argc, char **argv) {
 
     ///port
     strcpy(buffer, "");
-    strcpy(buffer, "port 127,0,0,1,5,5");
+//    strcpy(buffer, "port 127,0,0,1,5,5");
+    strcpy(buffer, "port 127,0,0,1,5,6");
     size = strlen(buffer);
 
     iResult = sendValue(ConnectSocket, size, buffer);
@@ -224,7 +155,7 @@ int main(int argc, char **argv) {
         WSACleanup();
         return 1;
     }
-    SOCKET DataSocket = CreateDataSocketActiveMode();
+    SOCKET DataSocket = CreateDataSocketActiveMode(ConnectSocket);
 
     iResult = receiveValue(DataSocket, size, buffer);
     if (iResult <= 0) {
@@ -247,7 +178,7 @@ int main(int argc, char **argv) {
         WSACleanup();
         return 1;
     }
-    DataSocket = CreateDataSocketActiveMode();
+    DataSocket = CreateDataSocketActiveMode(ConnectSocket);
 
     iResult = receiveValue(DataSocket, size, buffer);
     if (iResult <= 0) {
@@ -271,7 +202,7 @@ int main(int argc, char **argv) {
         WSACleanup();
         return 1;
     }
-    DataSocket = CreateDataSocketActiveMode();
+    DataSocket = CreateDataSocketActiveMode(ConnectSocket);
 
     iResult = receiveValue(DataSocket, size, buffer);
     if (iResult <= 0) {
@@ -294,7 +225,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    DataSocket = CreateDataSocketActiveMode();
+    DataSocket = CreateDataSocketActiveMode(ConnectSocket);
 
     char buf[500] = "";
     size_t length;
@@ -339,18 +270,21 @@ int main(int argc, char **argv) {
     }
 
     filesize = ntohl(filesize);
-    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
-    if (fileDescriptor > 0) {
+//    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
+    FILE *dst_fd = fopen(filepath, "wb");
+    if (dst_fd != NULL) {
         char filebuf[100];
         int count = 0, k = 0;
         size_t aux = 0;
         while (count < filesize && (k = receiveValue(DataSocket, aux, filebuf)) > 0) {
             count += aux;
-            int check = write(fileDescriptor, filebuf, aux);
+            int check = fwrite(filebuf, 1, aux, dst_fd);
             cout << filebuf;
         }
 
-        close(fileDescriptor);
+//        close(fileDescriptor);
+        fclose(dst_fd);
+
     }
 
     closesocket(DataSocket);
@@ -369,7 +303,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    DataSocket = CreateDataSocketActiveMode();
+    DataSocket = CreateDataSocketActiveMode(ConnectSocket);
 
     struct _stat structure;
     int pleaseee = _stat(filepathstor, &structure);
@@ -395,9 +329,10 @@ int main(int argc, char **argv) {
             pthread_exit(nullptr);
         }
 
-        int fd = open(filepathstor, O_RDONLY);
-        if (fileDescriptor > 0) {
-            while (total < count && (k = read(fileDescriptor, buffer, 100)) > 0) {
+//        int fd = open(filepathstor, O_RDONLY);
+        FILE *src_fd = fopen(filepathstor, "rb");
+        if (src_fd != NULL) {
+            while (total < count && (k = fread(buffer, 1, 100, src_fd)) > 0) {
                 total += k;
                 buffer[k] = 0;
                 int res = sendValue(DataSocket, strlen(buffer), buffer);
@@ -405,12 +340,14 @@ int main(int argc, char **argv) {
                     pthread_exit(nullptr);
                 }
             }
-            close(fileDescriptor);
+
+//            close(fd);
+            fclose(src_fd);
         }
     }
 
 
-
+    closesocket(DataSocket);
 
 
 

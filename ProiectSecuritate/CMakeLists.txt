@@ -10,4 +10,5 @@ add_executable(ProiectSecuritate main.cpp
         Authentication.h
         CommandCenter.h
         SocketFunctions.h
+        Modes.h
 )

@@ -4,6 +4,7 @@
 #include <thread>
 #include <vector>
 #include "CommandCenter.h"
+#include "Modes.h"
 
 #define DEFAULT_PORT "27015"
 #define CMD_PORT "21"
@@ -11,9 +12,7 @@
 
 using namespace std;
 
-char DATA_PORT[100] = "20";
-char DATA_IP[100] = "127.0.0.1";
-int currentCommand = 1;
+
 
 vector<thread> allThreads;
 
@@ -31,63 +30,6 @@ BOOL WINAPI consoleHandler(DWORD signal) {
 }
 
 
-SOCKET CreateDataSocketActiveMode() {
-    struct addrinfo *result = NULL,
-            *ptr = NULL,
-            hints;
-
-    ZeroMemory(&hints, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-
-    char port[10];
-    strcpy(port, to_string(atoi(DATA_PORT) + currentCommand).c_str());
-
-
-    int iResult = getaddrinfo(DATA_IP, port, &hints, &result);
-    if (iResult != 0) {
-        cout << "getaddrinfo failed: " << iResult << endl;
-        WSACleanup();
-//        return 1;
-        pthread_exit(nullptr);
-    }
-
-    SOCKET DataSocket = INVALID_SOCKET;
-    ptr = result;
-
-    DataSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-    if (DataSocket == INVALID_SOCKET) {
-        cout << "Error at socket() : " << WSAGetLastError() << endl;
-        freeaddrinfo(result);
-        WSACleanup();
-        pthread_exit(nullptr);
-//        return 1;
-    }
-
-
-    //CONNECT TO A SOCKET
-    iResult = connect(DataSocket, ptr->ai_addr, (int) ptr->ai_addrlen);
-    if (iResult == SOCKET_ERROR) {
-        cout << "Error on connect(): " << WSAGetLastError() << endl;
-        closesocket(DataSocket);
-        DataSocket = INVALID_SOCKET;
-        pthread_exit(nullptr);
-    }
-
-
-    freeaddrinfo(result);
-
-    if (DataSocket == INVALID_SOCKET) {
-        cout << "Unable to connect to server" << endl;
-        WSACleanup();
-        pthread_exit(nullptr);
-    }
-
-    currentCommand++;
-
-    return DataSocket;
-}
 
 
 void workerThread(SOCKET ClientSocket) {
@@ -99,12 +41,12 @@ void workerThread(SOCKET ClientSocket) {
     char current_user[10];
 
     ///where to set current directory
-    char current_directory[500] = ".";
+    char current_directory[1024] = ".";
 
     ///WHERE TO READ CURRENT COMMAND
-    char current_command[100];
-    char current_command_word[100];
-    char command_arguments[100];
+    char current_command[1024];
+    char current_command_word[1024];
+    char command_arguments[1024];
 
 
     ///mode set
@@ -258,7 +200,12 @@ void workerThread(SOCKET ClientSocket) {
 
     while (strcmp(current_command_word, "quit") != 0) {
 
-        SOCKET DataSocket = CreateDataSocketActiveMode();
+        SOCKET DataSocket;
+        if (mode == 1)
+            DataSocket = CreateDataSocketActiveMode(ClientSocket);
+        else {
+            DataSocket = CreateDataSocketPassiveMode(ClientSocket);
+        }
 
         char return_val[1024];
         strcpy(return_val, "");
@@ -274,9 +221,14 @@ void workerThread(SOCKET ClientSocket) {
                 strcpy(return_val, ARGUMENT_ERROR);
             } else {
                 strcpy(return_val, "");
-                if (arguments.empty())
-                    arguments = current_directory;
-                listCommand(return_val, 1024, arguments);
+                char directory[500];
+                if (arguments.empty()){
+                    strcpy(directory, current_directory);
+                }else{
+                    strcpy(directory, arguments.c_str());
+                }
+
+                listCommand(return_val, 1024, directory);
             }
 
         }

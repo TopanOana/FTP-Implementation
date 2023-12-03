@@ -2,10 +2,10 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "ProiectSecuritate.exe"
+			"path" : "ClientSecuritate.exe"
 		},
 		{
-			"path" : "ProiectSecuritate.pdb"
+			"path" : "ClientSecuritate.pdb"
 		}
 	],
 	"backtrace" : 1,
@@ -27,7 +27,7 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 9,
+				"line" : 8,
 				"parent" : 0
 			}
 		]
@@ -56,7 +56,7 @@
 			]
 		}
 	],
-	"id" : "ProiectSecuritate::@6890427a1f51a3e7e1df",
+	"id" : "ClientSecuritate::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -91,8 +91,8 @@
 		],
 		"language" : "CXX"
 	},
-	"name" : "ProiectSecuritate",
-	"nameOnDisk" : "ProiectSecuritate.exe",
+	"name" : "ClientSecuritate",
+	"nameOnDisk" : "ClientSecuritate.exe",
 	"paths" : 
 	{
 		"build" : ".",
@@ -112,8 +112,7 @@
 			"sourceIndexes" : 
 			[
 				1,
-				2,
-				3
+				2
 			]
 		}
 	],
@@ -127,17 +126,12 @@
 		},
 		{
 			"backtrace" : 1,
-			"path" : "Authentication.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"path" : "CommandCenter.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
 			"path" : "SocketFunctions.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "Modes.h",
 			"sourceGroupIndex" : 1
 		}
 	],

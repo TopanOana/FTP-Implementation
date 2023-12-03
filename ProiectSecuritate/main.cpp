@@ -68,7 +68,7 @@ void workerThread(SOCKET ClientSocket) {
     int counter = 0;
 
     while (!authenticated && counter < 3) {
-        counter++;
+
         iResult = receiveValue(ClientSocket, bufferSize, current_command);
 
         if (iResult <= 0) {
@@ -88,11 +88,13 @@ void workerThread(SOCKET ClientSocket) {
         if (strcmp(current_command_word, USER_COMMAND) == 0) {
             if (arguments.empty()) {
                 strcpy(return_val, ARGUMENT_ERROR);
+                counter++;
             } else if (strcmp(current_user, "") == 0) {
                 strcpy(return_val, userCommand(arguments));
                 if (strcmp(return_val, "false") == 0) {
 //                    cout << "user does not exist!" << endl;
                     strcpy(return_val, "430 Invalid username or password.");
+                    counter++;
                 } else {
                     strcpy(current_user, return_val);
                     strcpy(return_val, "331 User name okay, need password.");
@@ -104,6 +106,7 @@ void workerThread(SOCKET ClientSocket) {
         } else if (strcmp(current_command_word, PASS_COMMAND) == 0) {
             if (arguments.empty()) {
                 strcpy(return_val, ARGUMENT_ERROR);
+                counter++;
             } else if (strcmp(current_user, "") == 0) {
                 strcpy(return_val, "332 Need account for login");
             } else {
@@ -111,6 +114,7 @@ void workerThread(SOCKET ClientSocket) {
                 if (strcmp(return_val, "false") == 0) {
 //                    cout << "user and password do not match!" << endl;
                     strcpy(return_val, "430 Invalid username or password.");
+                    counter++;
                 } else {
                     authenticated = true;
                     strcpy(return_val, "230 Logged in");
@@ -118,6 +122,7 @@ void workerThread(SOCKET ClientSocket) {
             }
         } else {
             strcpy(return_val, "530 Not logged in");
+            counter++;
         }
 
         size_t size = strlen(return_val);
@@ -156,6 +161,7 @@ void workerThread(SOCKET ClientSocket) {
             } else {
 
                 portCommand(command_arguments);
+                strcpy(toSend, "200 Command okay.");
                 mode = 1;
             }
 
@@ -195,12 +201,6 @@ void workerThread(SOCKET ClientSocket) {
 
     while (strcmp(current_command_word, "quit") != 0) {
 
-        SOCKET DataSocket;
-        if (mode == 1)
-            DataSocket = CreateDataSocketActiveMode(ClientSocket);
-        else {
-            DataSocket = CreateDataSocketPassiveMode(ClientSocket);
-        }
 
         char return_val[1024];
         strcpy(return_val, "");
@@ -211,6 +211,13 @@ void workerThread(SOCKET ClientSocket) {
 
 
         if (strcmp(current_command_word, LIST_COMMAND) == 0) {
+
+            SOCKET DataSocket;
+            if (mode == 1)
+                DataSocket = CreateDataSocketActiveMode(ClientSocket);
+            else {
+                DataSocket = CreateDataSocketPassiveMode(ClientSocket);
+            }
 
             if (strcmp(current_command, current_command_word) != 0 && arguments.empty()) {
                 strcpy(return_val, ARGUMENT_ERROR);
@@ -239,11 +246,9 @@ void workerThread(SOCKET ClientSocket) {
         if (strcmp(current_command_word, CWD_COMMAND) == 0) {
 
             if (arguments.empty()) {
-                if (strcmp(current_command, current_command_word) == 0) {
-                    strcpy(return_val, "an path must be provided");
-                } else {
-                    strcpy(return_val, ARGUMENT_ERROR);
-                }
+
+                strcpy(return_val, ARGUMENT_ERROR);
+
             } else {
                 char auxiliary[500];
                 cwdCommand(arguments, auxiliary);
@@ -267,31 +272,63 @@ void workerThread(SOCKET ClientSocket) {
         }
 
         if (strcmp(current_command_word, RETR_COMMAND) == 0) {
+            SOCKET DataSocket;
+            if (mode == 1)
+                DataSocket = CreateDataSocketActiveMode(ClientSocket);
+            else {
+                DataSocket = CreateDataSocketPassiveMode(ClientSocket);
+            }
             if (arguments.empty()) {
-                if (strcmp(current_command, current_command_word) == 0) {
-                    strcpy(return_val, "a path must be provided");
-                } else {
-                    strcpy(return_val, ARGUMENT_ERROR);
+                closesocket(DataSocket);
+                strcpy(return_val, ARGUMENT_ERROR);
+
+                size_t size = strlen(return_val);
+
+                iResult = sendValue(ClientSocket, size, return_val);
+
+                if (iResult <= 0) {
+                    return;
                 }
             } else {
                 retrCommand(DataSocket, arguments, current_directory, ClientSocket);
+                closesocket(DataSocket);
             }
         }
 
         if (strcmp(current_command_word, STOR_COMMAND) == 0) {
+            SOCKET DataSocket;
+            if (mode == 1)
+                DataSocket = CreateDataSocketActiveMode(ClientSocket);
+            else {
+                DataSocket = CreateDataSocketPassiveMode(ClientSocket);
+            }
             if (arguments.empty()) {
-                if (strcmp(current_command, current_command_word) == 0) {
-                    strcpy(return_val, "a path must be provided");
-                } else {
-                    strcpy(return_val, ARGUMENT_ERROR);
+                closesocket(DataSocket);
+                strcpy(return_val, ARGUMENT_ERROR);
+
+                size_t size = strlen(return_val);
+
+                iResult = sendValue(ClientSocket, size, return_val);
+
+                if (iResult <= 0) {
+                    return;
                 }
             } else {
+
                 storCommand(DataSocket, arguments.c_str(), current_directory);
+                closesocket(DataSocket);
+                strcpy(return_val, "226 File transfer successful. Closing data connection");
+
+                size_t size = strlen(return_val);
+
+                iResult = sendValue(ClientSocket, size, return_val);
+
+                if (iResult <= 0) {
+                    return;
+                }
             }
         }
 
-
-        closesocket(DataSocket);
 
         size_t size;
 

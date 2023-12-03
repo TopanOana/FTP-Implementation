@@ -180,6 +180,11 @@ void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory, SO
                 }
             }
             fclose(src_fd);
+            char value[100] = "226 File transfer successful. Closing data connection.";
+            int res = sendValue(ClientSocket, strlen(value), value);
+            if (res <= 0) {
+                pthread_exit(nullptr);
+            }
         }
 
     }
@@ -191,32 +196,11 @@ void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirector
     strcat(filepath, "\\");
     strcat(filepath, strrchr(arguments, '\\') + 1);
 
-    char buffer[100];
-    size_t aux;
-//    int result = receiveValue(DataSocket, aux, buffer);
-//    if (result <= 0) {
-//        pthread_exit(nullptr);
-//    }
-//
-//    if (strcmp(buffer, "ok") != 0) {
-//        cout << buffer << " for stor command" << endl;
-//        return;
-//    }
-
-
-//    int fileDescriptor = open(filepath, O_WRONLY | O_CREAT);
     FILE *dst_fd = fopen(filepath, "wb");
     if (dst_fd != NULL) {
-//        size_t filesize;
-//        int iResult = recv(DataSocket, (char *) &filesize, sizeof(size_t), 0);
-//        if (iResult <= 0) {
-//            pthread_exit(nullptr);
-//        }
-//        filesize = ntohl(filesize);
 
         char filebuf[100];
         int count = 0, k = 0;
-//        size_t aux = 0;
         while ((k = recv(DataSocket, filebuf, sizeof(char) * 99, 0)) > 0) {
             filebuf[k] = 0;
             count += k;
@@ -229,7 +213,7 @@ void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirector
 }
 
 
-void pasvCommand(SOCKET ClientSocket){
+void pasvCommand(SOCKET ClientSocket) {
     char send[100];
     char auxiliary[20];
     strcpy(auxiliary, DATA_IP);
@@ -238,13 +222,13 @@ void pasvCommand(SOCKET ClientSocket){
     char *p = strtok(auxiliary, ".");
     strcat(send, p);
     strcat(send, ",");
-    p = strtok(p, ".");
+    p = strtok(NULL, ".");
     strcat(send, p);
     strcat(send, ",");
-    p = strtok(p, ".");
+    p = strtok(NULL, ".");
     strcat(send, p);
     strcat(send, ",");
-    p = strtok(p, ".");
+    p = strtok(NULL, ".");
     strcat(send, p);
     strcat(send, ",");
 
@@ -257,14 +241,14 @@ void pasvCommand(SOCKET ClientSocket){
     strcat(send, ")");
 
     int result = sendValue(ClientSocket, strlen(send), send);
-    if (result <=0){
+    if (result <= 0) {
         closesocket(ClientSocket);
         pthread_exit(nullptr);
     }
 
 }
 
-void portCommand(char* command_arguments){
+void portCommand(char *command_arguments) {
     char newAddress[100] = "";
 
     char *p = strtok(command_arguments, ","); //primul strtok

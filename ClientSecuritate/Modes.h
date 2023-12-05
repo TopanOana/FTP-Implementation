@@ -15,8 +15,8 @@
 using namespace std;
 
 char DATA_IP[100] = "127.0.0.1";
-//char DATA_PORT[100] = "1285";
-char DATA_PORT[100] = "1286";
+char DATA_PORT[100] = "1285";
+//char DATA_PORT[100] = "1286";
 int currentCommand = 1;
 
 

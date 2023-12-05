@@ -1,0 +1,48 @@
+de implementat:
+
+serverside: 
+	
+	
+clientside:
+port -> user -> pass -> other cmds
+
+-conectare/logare => user, pass
+	user <username>
+	pass <password>
+
+-deconectare => quit
+	quit => just exit + close socket 
+	
+-listare fisiere =>
+	cwd <path> => primesti true | false
+	list <path> => path e optional
+	
+-descarcare fisiere
+	retr => stubborn read
+
+-urcare fisiere
+	stor => stubborn write
+	
+-passive
+	pasv =>????
+
+	
+	
+	
+stubborn read https://www.cs.ubbcluj.ro/~horea.muresan/os/sol-c/26.c
+
+	
+
+port : client -> server care spune serverului sa se conecteze pt transferul de fisiere
+				pe server se deschide inca o conexiune
+
+
+
+PORT h1,h2,h3,h4,p1,p2
+	-> address the 
+
+PASV 
+--> returns host and port address this server is listening on
+
+ordinea e de fapt:
+USER -> PASS -> PASV|PORT

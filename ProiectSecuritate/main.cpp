@@ -92,15 +92,16 @@ void workerThread(SOCKET ClientSocket) {
             } else if (strcmp(current_user, "") == 0) {
                 strcpy(return_val, userCommand(arguments));
                 if (strcmp(return_val, "false") == 0) {
-//                    cout << "user does not exist!" << endl;
+                    cout << "user does not exist!" << endl;
                     strcpy(return_val, "430 Invalid username or password.");
                     counter++;
                 } else {
                     strcpy(current_user, return_val);
                     strcpy(return_val, "331 User name okay, need password.");
+                    cout << return_val << endl;
                 }
             } else {
-//                cout << "user already logged in!";
+                cout << "user already logged in!";
                 strcpy(return_val, "331 User name okay, need password.");
             }
         } else if (strcmp(current_command_word, PASS_COMMAND) == 0) {
@@ -112,17 +113,19 @@ void workerThread(SOCKET ClientSocket) {
             } else {
                 strcpy(return_val, passCommand(current_user, arguments));
                 if (strcmp(return_val, "false") == 0) {
-//                    cout << "user and password do not match!" << endl;
+                    cout << "user and password do not match!" << endl;
                     strcpy(return_val, "430 Invalid username or password.");
                     counter++;
                 } else {
                     authenticated = true;
                     strcpy(return_val, "230 Logged in");
+                    cout << return_val << endl;
                 }
             }
         } else {
             strcpy(return_val, "530 Not logged in");
             counter++;
+            cout << return_val << endl;
         }
 
         size_t size = strlen(return_val);
@@ -211,7 +214,7 @@ void workerThread(SOCKET ClientSocket) {
 
 
         if (strcmp(current_command_word, LIST_COMMAND) == 0) {
-
+            cout << "i am in list" << endl;
             SOCKET DataSocket;
             if (mode == 1)
                 DataSocket = CreateDataSocketActiveMode(ClientSocket);
@@ -232,6 +235,10 @@ void workerThread(SOCKET ClientSocket) {
 
                 listCommand(DataSocket, directory, return_val);
 
+                if (strlen(return_val) == 0){
+                    strcpy(return_val, "200 Command okay.");
+                }
+
                 size_t size = strlen(return_val);
 
                 iResult = sendValue(ClientSocket, size, return_val);
@@ -239,6 +246,7 @@ void workerThread(SOCKET ClientSocket) {
                 if (iResult <= 0) {
                     return;
                 }
+                closesocket(DataSocket);
             }
 
         }
@@ -267,6 +275,7 @@ void workerThread(SOCKET ClientSocket) {
                 if (iResult <= 0) {
                     return;
                 }
+
             }
 
         }

@@ -111,6 +111,7 @@ void listCommand(SOCKET DataSocket, char *arguments, char *result) {
         while ((en = readdir(dir)) != NULL) {
             strcpy(line, en->d_name);
             strcat(line, "\n");
+            cout<<line;
             int res = send(DataSocket, line, sizeof(char) * strlen(line), 0);
             if (res <= 0) {
                 strcpy(result, "426 Connection closed; transfer aborted");

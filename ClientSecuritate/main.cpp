@@ -134,6 +134,7 @@ int main(int argc, char **argv) {
             WSACleanup();
             exit(1);
         }
+        cout << buffer << endl;
 
         if (!checkCode(buffer, 0, '4') && !checkCode(buffer, 0, '5')) {
             cout << endl << "password: " << endl;
@@ -156,17 +157,18 @@ int main(int argc, char **argv) {
                 WSACleanup();
                 exit(1);
             }
+            cout << buffer << endl;
 
             if (!checkCode(buffer, 0, '4') && !checkCode(buffer, 0, '5')) {
                 authenticated = true;
                 break;
             } else {
-                cout << buffer << endl;
+//                cout << buffer << endl;
                 counter++;
             }
 
         } else {
-            cout << buffer << endl;
+//            cout << buffer << endl;
             counter++;
         }
     }
@@ -196,13 +198,13 @@ int main(int argc, char **argv) {
             char *p = strtok(auxiliary, ".");
             strcat(command, p);
             strcat(command, ",");
-            p = strtok(p, ".");
+            p = strtok(NULL, ".");
             strcat(command, p);
             strcat(command, ",");
-            p = strtok(p, ".");
+            p = strtok(NULL, ".");
             strcat(command, p);
             strcat(command, ",");
-            p = strtok(p, ".");
+            p = strtok(NULL, ".");
             strcat(command, p);
             strcat(command, ",");
 
@@ -229,6 +231,7 @@ int main(int argc, char **argv) {
                 WSACleanup();
                 exit(1);
             }
+            cout << buffer << endl;
 
             if (checkCode(buffer, 0, '2')) {
                 mode = 1;
@@ -257,6 +260,8 @@ int main(int argc, char **argv) {
                 exit(1);
             }
 
+            cout << buffer << endl;
+
             if (checkCode(buffer, 0, '2')) {
                 mode = 2;
                 char *p = strchr(buffer, '(') + 1;
@@ -264,13 +269,13 @@ int main(int argc, char **argv) {
                 strcpy(DATA_IP, p);
                 strcat(DATA_IP, ".");
                 p = strtok(NULL, ",");//H2
-                strcpy(DATA_IP, p);
+                strcat(DATA_IP, p);
                 strcat(DATA_IP, ".");
                 p = strtok(NULL, ",");//H3
-                strcpy(DATA_IP, p);
+                strcat(DATA_IP, p);
                 strcat(DATA_IP, ".");
                 p = strtok(NULL, ",");//H4
-                strcpy(DATA_IP, p);
+                strcat(DATA_IP, p);
                 strcat(DATA_IP, ".");
                 p = strtok(NULL, ",");//p1
                 int p1 = atoi(p);
@@ -336,9 +341,11 @@ int main(int argc, char **argv) {
                 exit(1);
             }
 
-            if (checkCode(buffer, 0, 2)) {
+            if (checkCode(buffer, 0, '2')) {
                 memset(buffer, 0, 500);
-                while (recv(DataSocket, buffer, 100 * sizeof(char), 0) > 0) {
+                int k;
+                while ((k = recv(DataSocket, buffer, 100 * sizeof(char), 0) )> 0) {
+                    buffer[k] = 0;
                     cout << buffer;
                 }
 
@@ -364,7 +371,12 @@ int main(int argc, char **argv) {
             string cmd_arguments = getCommandArguments(current_command);
 
             char filepath[_MAX_PATH];
-            strcpy(filepath, strrchr(cmd_arguments.c_str(), '\\') + 1);
+            strcpy(filepath, "D:\\UniversityWork\\SecuritateFTP\\");
+            char *p = strrchr(cmd_arguments.c_str(), '\\');
+            if (p != NULL)
+                strcat(filepath, strrchr(cmd_arguments.c_str(), '\\') + 1);
+            else
+                strcat(filepath, cmd_arguments.c_str());
 
             FILE *dst_fd = fopen(filepath, "wb");
             if (dst_fd != NULL) {
@@ -392,6 +404,7 @@ int main(int argc, char **argv) {
             }
 
             cout << buffer << endl;
+            closesocket(DataSocket);
 
 
         } else if (strcmpi(cmd_word.c_str(), "STOR") == 0) {
@@ -442,7 +455,7 @@ int main(int argc, char **argv) {
             }
             cout << command << endl;
 
-        } else if (strcmpi(command, "QUIT") == 0){
+        } else if (strcmpi(command, "QUIT") == 0) {
             iResult = sendValue(ConnectSocket, strlen(command), command);
             if (iResult <= 0) {
                 closesocket(ConnectSocket);
@@ -459,8 +472,7 @@ int main(int argc, char **argv) {
             }
             cout << command << endl;
             break;
-        }
-        else{
+        } else {
             cout << "command not accepted" << endl;
         }
 

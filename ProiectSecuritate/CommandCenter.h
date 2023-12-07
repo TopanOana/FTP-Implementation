@@ -63,7 +63,7 @@ string getCommandWord(string command) {
     command = left_trim(command);
     string cmd = command.substr(0, command.find(' '));
     transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
-    return cmd;
+    return right_trim(cmd);
 }
 
 string getCommandArguments(string command) {
@@ -109,19 +109,21 @@ void listCommand(SOCKET DataSocket, char *arguments, char *result) {
 
     if (dir) {
         while ((en = readdir(dir)) != NULL) {
-            strcpy(line, en->d_name);
-            strcat(line, "\n");
-            cout<<line;
+            strncpy(line, en->d_name, _MAX_PATH);
+            line[strlen(en->d_name)] = 0;
+            strncat(line, "\n", _MAX_PATH - strlen(en->d_name) - 1);
+            line[strlen(en->d_name) + 2] = 0;
+            cout << line;
             int res = send(DataSocket, line, sizeof(char) * strlen(line), 0);
             if (res <= 0) {
-                strcpy(result, "426 Connection closed; transfer aborted");
+                strcpy(result, "426 Connection closed; transfer aborted"); //ii constanta
             }
 //            strncat(result, en->d_name, size - strlen(result) - 1);
 //            strncat(result, "\n", size - strlen(result) - 1);
         }
         closedir(dir);
     } else {
-        strcpy(result, "550 File does not exist.");
+        strcpy(result, "550 File does not exist."); //ii constanta
     }
 }
 
@@ -129,41 +131,26 @@ void listCommand(SOCKET DataSocket, char *arguments, char *result) {
 void retrCommand(SOCKET DataSocket, string arguments, char *currentDirectory, SOCKET ClientSocket) {
     struct _stat structure;
     char filepath[500] = "";
-    strcat(filepath, currentDirectory);
-    strcat(filepath, "\\");
-    strcat(filepath, arguments.c_str());
+    strncpy(filepath, currentDirectory, _MAX_PATH);
+    filepath[strlen(currentDirectory)] = 0;
+    strncat(filepath, "\\", 2);
+    filepath[strlen(currentDirectory) + 2] = 0;
+    strncat(filepath, arguments.c_str(), _MAX_PATH - strlen(currentDirectory) - 1);
+    filepath[strlen(currentDirectory) + 1 + arguments.size()] = 0;
 
     int result = _stat(filepath, &structure);
     char buffer[101] = "";
     if (result < 0) {
-        strcpy(buffer, "550 File does not exist.");
+        strcpy(buffer, "550 File does not exist."); //constant
         int res = sendValue(ClientSocket, strlen(buffer), buffer);
         if (res <= 0) {
             pthread_exit(nullptr);
         }
     } else {
         int k, count = structure.st_size, total = 0;
-//        size_t copySize = htonl(count);
-//        strcpy(buffer, "ok");
-//        int res = sendValue(DataSocket, strlen(buffer), buffer);
-//        if (res <= 0) {
-//            pthread_exit(nullptr);
-//        }
 
 
-        strcpy(buffer, strrchr(filepath, '\\') + 1);
-//        int res = sendValue(DataSocket, strlen(buffer), buffer);
-//        if (res <= 0) {
-//            pthread_exit(nullptr);
-//        }
-
-//        int res = send(DataSocket, (char *) &copySize, sizeof(size_t), 0);
-//        if (res <= 0) {
-//            pthread_exit(nullptr);
-//        }
-
-
-//        int fileDescriptor = open(filepath, O_RDONLY);
+        strcpy(buffer, strrchr(filepath, '\\') + 1); //e verificat deja basically de mai sus cu filepath
         FILE *src_fd = fopen(filepath, "rb");
 
         if (src_fd != NULL) {
@@ -195,7 +182,8 @@ void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirector
     char filepath[500] = "";
     strcpy(filepath, currentDirectory);
     strcat(filepath, "\\");
-    strcat(filepath, strrchr(arguments, '\\') + 1);
+    strncat(filepath, strrchr(arguments, '\\') + 1, 500 - strlen(filepath) - 1);
+    filepath[strlen(currentDirectory) + 1 + strlen(arguments)] = 0;
 
     FILE *dst_fd = fopen(filepath, "wb");
     if (dst_fd != NULL) {
@@ -215,6 +203,7 @@ void storCommand(SOCKET DataSocket, const char *arguments, char *currentDirector
 
 
 void pasvCommand(SOCKET ClientSocket) {
+    //de aici sunt chestii fixe, si nu se prea schimba deci versiunile sigure n-au foarte mult rost
     char send[100];
     char auxiliary[20];
     strcpy(auxiliary, DATA_IP);

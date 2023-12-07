@@ -27,8 +27,6 @@ SOCKET CreateDataSocketActiveMode(SOCKET ClientSocket) {
         pthread_exit(nullptr);
     }
 
-
-
     struct addrinfo *result = NULL,
             *ptr = NULL,
             hints;

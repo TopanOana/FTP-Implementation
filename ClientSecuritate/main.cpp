@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
             if (checkCode(buffer, 0, '2')) {
                 memset(buffer, 0, 500);
                 int k;
-                while ((k = recv(DataSocket, buffer, 100 * sizeof(char), 0) )> 0) {
+                while ((k = recv(DataSocket, buffer, 100 * sizeof(char), 0)) > 0) {
                     buffer[k] = 0;
                     cout << buffer;
                 }
@@ -374,7 +374,7 @@ int main(int argc, char **argv) {
             strcpy(filepath, "D:\\UniversityWork\\SecuritateFTP\\");
             char *p = strrchr(cmd_arguments.c_str(), '\\');
             if (p != NULL)
-                strcat(filepath, strrchr(cmd_arguments.c_str(), '\\') + 1);
+                strcat(filepath, p + 1);
             else
                 strcat(filepath, cmd_arguments.c_str());
 
@@ -438,22 +438,23 @@ int main(int argc, char **argv) {
                         buffer[k] = 0;
                         int res = send(DataSocket, buffer, sizeof(char) * k, 0);
                         if (res <= 0) {
-                            pthread_exit(nullptr);
+                            break;
                         }
                     }
 
                     fclose(src_fd);
                 }
                 closesocket(DataSocket);
+                size_t size;
+                iResult = receiveValue(ConnectSocket, size, command);
+                if (iResult <= 0) {
+                    closesocket(ConnectSocket);
+                    WSACleanup();
+                    exit(1);
+                }
+                cout << command << endl;
             }
-            size_t size;
-            iResult = receiveValue(ConnectSocket, size, command);
-            if (iResult <= 0) {
-                closesocket(ConnectSocket);
-                WSACleanup();
-                exit(1);
-            }
-            cout << command << endl;
+
 
         } else if (strcmpi(command, "QUIT") == 0) {
             iResult = sendValue(ConnectSocket, strlen(command), command);

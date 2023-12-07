@@ -211,6 +211,7 @@ void workerThread(SOCKET ClientSocket) {
 
     while (strcmp(current_command_word, "quit") != 0) {
 
+        cout << current_command << endl;
 
         char return_val[1024];
         strcpy(return_val, "");
@@ -345,8 +346,7 @@ void workerThread(SOCKET ClientSocket) {
                     return;
                 }
             }
-        }
-        else {
+        } else {
             strcpy(return_val, "500 Command unrecognized");
 
             size_t size = strlen(return_val);

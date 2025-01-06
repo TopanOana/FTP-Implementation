@@ -26,5 +26,3 @@ This project implements an FTP Server and Client based on the [RFC-959](https://
 
 ---
 
-Feel free to use, test, or provide feedback on this implementation!
-
